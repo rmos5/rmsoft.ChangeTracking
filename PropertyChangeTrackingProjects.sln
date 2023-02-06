@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PropertyChangeTracking", "PropertyChangeTracking.csproj", "{B51F6364-0E99-4851-8006-A99860961891}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B51F6364-0E99-4851-8006-A99860961891}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B51F6364-0E99-4851-8006-A99860961891}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B51F6364-0E99-4851-8006-A99860961891}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B51F6364-0E99-4851-8006-A99860961891}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9619BCE6-96DC-4512-A1F0-73124B0A9343}
+	EndGlobalSection
+EndGlobal
