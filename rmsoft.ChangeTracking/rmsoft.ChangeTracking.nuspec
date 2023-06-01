@@ -7,7 +7,7 @@
     <authors>raivo.mosona@gmail.com</authors>
     <owners>rmsoft</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Property change tracking library.</description>
+    <description>Change tracking library.</description>
     <copyright>©2019-2023 rmsoft</copyright>
     <releaseNotes>Stable.</releaseNotes>
   </metadata>

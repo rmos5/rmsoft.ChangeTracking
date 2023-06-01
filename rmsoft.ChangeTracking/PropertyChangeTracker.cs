@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -7,133 +6,156 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public class PropertyChangeTracker : IPropertyChangeTracker
+    public class PropertyChangeTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracker
     {
-        public event EventHandler TrackerUpdated;
-        public INotifyPropertyChanged Target { get; }
-        protected IDictionary<string, PropertyChanges> TrackedProperties { get; } = new ConcurrentDictionary<string, PropertyChanges>();
-        public bool IsTracking { get; private set; }
-        public IEnumerable<string> TrackedPropertyNames => TrackedProperties.Keys;
-        public IEnumerable<string> ChangedPropertyNames => Changes.Select(o => o.Key);
-        public IEnumerable<KeyValuePair<string, PropertyChanges>> Changes => TrackedProperties.Where(o => o.Value.Count > 1);
-        public bool HasChanges => Changes.Any();
-        public KeyValuePair<string, PropertyChanges> CurrentChange { get; set; } = default(KeyValuePair<string, PropertyChanges>);
-
-        public PropertyChangeTracker(INotifyPropertyChanged target)
+        protected struct PropertyValue
         {
-            Target = target ?? throw new ArgumentNullException(nameof(target));
+            public string Name { get; }
+            public object Value { get; }
+
+            public PropertyValue(string name, object value)
+            {
+                if (name == null)
+                    throw new ArgumentNullException(nameof(name));
+
+                if (name.Trim().Length == 0)
+                    throw new ArgumentException(nameof(name));
+
+                Name = name;
+                Value = value;
+            }
+        }
+
+        public PropertyChangeTracker(INotifyPropertyChanged item)
+            : base(item)
+        {
         }
 
         ~PropertyChangeTracker()
         {
-            Target.PropertyChanged -= Target_PropertyChanged;
+            RemoveItemEvents();
         }
 
-        private void Target_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        public override bool HasChanges =>
+            base.HasChanges
+            && Changes.Any(o => o.CurrentIndex > 0);
+
+        protected IEnumerable<string> GetTrackedPropertyNames() => Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()).Select(o => o.Name);
+
+        protected IEnumerable<string> GetChangedPropertyNames() => Changes.Select(o => o.PropertyName).Distinct();
+
+        private void Item_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (IsTracking)
+            if (GetTrackedPropertyNames().Contains(e.PropertyName))
             {
-                PropertyInfo property = Target.GetType().GetProperty(e.PropertyName);
-                if (property.GetCustomAttributes<PropertyChangeTrackerAttribute>(true).Any())
+                PropertyChanges change = Changes.FirstOrDefault(o => o.PropertyName == e.PropertyName);
+                bool add = change == null;
+                if (change == null)
                 {
-                    UpdateChange(e.PropertyName, Target.GetType().GetProperty(e.PropertyName).GetValue(Target));
+                    change = new PropertyChanges(e.PropertyName);
+                    change.Add(OriginalPropertyValues.First(o => o.Name == e.PropertyName).Value);
                 }
+
+                change.Add(Item.GetType().GetProperty(e.PropertyName).GetValue(Item));
+                if (add)
+                    AddChange(change);
             }
         }
 
-        private void RaiseTrackerUpdated()
+        protected void AddItemEvents()
         {
-            EventHandler h = TrackerUpdated;
-            h?.Invoke(this, EventArgs.Empty);
+            Item.PropertyChanged += Item_PropertyChanged;
         }
 
-        private void UpdateChange(string propertyName, object value)
+        protected void RemoveItemEvents()
         {
-            if (!TrackedProperties.ContainsKey(propertyName))
-                TrackedProperties.Add(propertyName, new PropertyChanges());
-
-            TrackedProperties[propertyName].UpdateCurrent(value);
-            CurrentChange = TrackedProperties.First(o=>o.Key == propertyName);
-            RaiseTrackerUpdated();
+            Item.PropertyChanged -= Item_PropertyChanged;
         }
 
-        public void StartTracking()
+        public bool IsChanged(string propertyName)
+        {
+            return Changes.Any(o => o.PropertyName == propertyName);
+        }
+
+        public override bool CanUndo()
+        {
+            return base.CanUndo()
+                || (CurrentNode != null
+                && CurrentNode.Value.CanUndo);
+        }
+
+        public override bool CanRedo()
+        {
+            return base.CanRedo()
+                || (CurrentNode != null
+                && CurrentNode.Value.CanRedo);
+        }
+
+        protected void ApplyChange(string name, object value)
         {
             if (IsTracking)
-                throw new InvalidOperationException("Tracking is already active.");
-
-            TrackedProperties.Clear();
-            PropertyChanges changes;
-            foreach (PropertyInfo obj in Target.GetType().GetProperties().Where(o => o.GetCustomAttribute<PropertyChangeTrackerAttribute>() != null))
-            {
-                changes = new PropertyChanges();
-                changes.Add(obj.GetValue(Target));
-                TrackedProperties.Add(obj.Name, changes);
-            }
-
-            IsTracking = true;
-            Target.PropertyChanged += Target_PropertyChanged;
-            RaiseTrackerUpdated();
+                RemoveItemEvents();
+            Item.GetType().GetProperty(name).SetValue(Item, value);
+            if (IsTracking)
+                AddItemEvents();
         }
 
-        public void StopTracking()
+        protected override LinkedListNode<PropertyChanges> ApplyUndoChange()
         {
-            if (!IsTracking)
-                throw new InvalidOperationException("Tracking is not active.");
-            IsTracking = false;
-            Target.PropertyChanged -= Target_PropertyChanged;
-            RaiseTrackerUpdated();
-        }
+            LinkedListNode<PropertyChanges> result = CurrentNode;
 
-        public bool ResetChanges(string propertyName)
-        {
-            PropertyChanges changes;
-            if (TrackedProperties.ContainsKey(propertyName))
-            {
-                changes = TrackedProperties[propertyName];
-                changes.Reset();
-                Target.GetType().GetProperty(propertyName).SetValue(Target, changes.Current);
-                return true;
-            }
+            if (!result.Value.CanUndo)
+                result = CurrentNode.Previous;
 
-            RaiseTrackerUpdated();
-            return false;
-        }
+            result.Value.Undo();
+            ApplyChange(result.Value.PropertyName, result.Value.Current);
 
-        public void ResetChanges()
-        {
-            foreach (string obj in TrackedProperties.Keys)
-            {
-                ResetChanges(obj);
-            }
-        }
-
-        public bool CanUndo(string propertyName)
-        {
-            return TrackedProperties[propertyName].CanUndo;
-        }
-
-        public bool Undo(string propertyName)
-        {
-            bool result = TrackedProperties[propertyName].Undo();
-            if (result)
-                Target.GetType().GetProperty(propertyName).SetValue(Target, TrackedProperties[propertyName].Current);
-            RaiseTrackerUpdated();
             return result;
         }
 
-        public bool CanRedo(string propertyName)
+        protected override LinkedListNode<PropertyChanges> ApplyRedoChange()
         {
-            return TrackedProperties[propertyName].CanRedo;
+            LinkedListNode<PropertyChanges> result = CurrentNode;
+
+            if (!result.Value.CanRedo)
+                result = CurrentNode.Next;
+
+            result.Value.Redo();
+            ApplyChange(result.Value.PropertyName, result.Value.Current);
+
+            return result;
         }
 
-        public bool Redo(string propertyName)
+        protected IEnumerable<PropertyValue> OriginalPropertyValues { get; private set; }
+
+        protected PropertyValue GetInitialChange(PropertyValue change)
         {
-            bool result = TrackedProperties[propertyName].Redo();
-            if (result)
-                Target.GetType().GetProperty(propertyName).SetValue(Target, TrackedProperties[propertyName].Current);
-            RaiseTrackerUpdated();
-            return result;
+            return OriginalPropertyValues.First(o => o.Name == change.Name);
+        }
+
+        protected override void StartTrackingOverride()
+        {
+            OriginalPropertyValues = Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()).Select(o => new PropertyValue(o.Name, o.GetValue(Item))).ToList();
+            AddItemEvents();
+        }
+
+        protected override void StopTrackingOverride(bool cancelChanges)
+        {
+            RemoveItemEvents();
+        }
+
+        protected override void SetOriginalValues()
+        {
+            if (IsTracking)
+                RemoveItemEvents();
+
+            foreach (PropertyValue obj in OriginalPropertyValues)
+            {
+                Item.GetType().GetProperty(obj.Name).SetValue(Item, obj.Value);
+            }
+
+            if (IsTracking)
+                AddItemEvents();
         }
     }
 }

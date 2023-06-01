@@ -39,9 +39,19 @@
     <Compile Include="..\..\RmsoftControlsProjects\SharedAssemblyInfo.cs">
       <Link>Properties\SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="ChangeTrackerBase.cs" />
+    <Compile Include="Commands.cs" />
+    <Compile Include="IChangeTracker.cs" />
+    <Compile Include="IListChangeTracker.cs" />
+    <Compile Include="INotifyListChanged.cs" />
     <Compile Include="IPropertyChangeTracker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyChanges.cs" />
+    <Compile Include="TrackedObjectBase.Commands.cs" />
+    <Compile Include="TrackedObjectBase.cs" />
+    <Compile Include="ListChangeTracker.cs" />
+    <Compile Include="ListChangeTrackerAttribute.cs" />
+    <Compile Include="PropertyChangedBase.cs" />
     <Compile Include="PropertyChangeTrackerAttribute.cs" />
     <Compile Include="PropertyChangeTracker.cs" />
   </ItemGroup>
