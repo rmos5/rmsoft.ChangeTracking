@@ -31,13 +31,14 @@
 
                     <WrapPanel Orientation="Horizontal">
                         <Button Content="Get Data" Command="{Binding GetDataCommand}"/>
-                        <ToggleButton Content="Edit" Command="{Binding ToggleDataEditCommand}"/>
-                        <Button Content="Add" Command="{Binding AddDataCommand}"/>
-                        <Button Content="Remove" Command="{Binding RemoveDataCommand}"/>
-                        <Button Content="Undo" Command="{Binding UndoDataChangesCommand}"/>
-                        <Button Content="Redo" Command="{Binding RedoDataChangesCommand}"/>
-                        <Button Content="Apply" Command="{Binding ApplyDataChangesCommand}"/>
-                        <CheckBox Content="Append data" IsChecked="{Binding IsAppendData,Mode=TwoWay}"/>
+                        <CheckBox VerticalAlignment="Center" Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
+                        <Button Content="New" Command="{Binding AddNewDataCommand}"/>
+                        <Button Content="Remove" Command="{Binding RemoveItemCommand}"/>
+                        <Button Content="Clear" Command="{Binding ClearItemsCommand}"/>
+                        <Button Content="Undo" Command="{Binding UndoChangesCommand}"/>
+                        <Button Content="Redo" Command="{Binding RedoChangesCommand}"/>
+                        <Button Content="Apply" Command="{Binding ApplyChangesCommand}"/>
+                        <CheckBox Content="Insert data" IsChecked="{Binding IsInsertData,Mode=TwoWay}"/>
                     </WrapPanel>
                     
                     <ListBox Grid.Row="1" d:ItemsSource="{d:SampleData ItemCount=5}" d:SelectedIndex="3" ItemsSource="{Binding}" SelectedItem="{Binding SelectedItem,Mode=TwoWay}">
@@ -47,8 +48,10 @@
                                     <TextBlock Text="{Binding Name}" x:Name="textBlock1"/>
                                 </StackPanel>
                                 <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding IsTracking}" Value="True">
+                                    <DataTrigger Binding="{Binding HasChanges}" Value="True">
                                         <Setter TargetName="stackPanel1" Property="Background" Value="LightGreen"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsTracking}" Value="True">
                                         <Setter TargetName="textBlock1" Property="FontWeight" Value="SemiBold"/>
                                         <Setter TargetName="textBlock1" Property="FontSize" Value="14"/>
                                     </DataTrigger>
@@ -74,9 +77,9 @@
                             <RowDefinition/>
                         </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal">
-                            <ToggleButton Content="Edit" Command="{Binding ToggleEditingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
                             <Button Content="Undo" Command="{Binding UndoChangesCommand}"/>
                             <Button Content="Redo" Command="{Binding RedoChangesCommand}"/>
+                            <CheckBox VerticalAlignment="Center" Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" HorizontalAlignment="Left">
                             
@@ -89,10 +92,6 @@
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsTracking}" Value="True">
                                             <Setter Property="IsReadOnly" Value="False"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsChanged}" Value="True">
-                                            <Setter Property="BorderBrush" Value="LightGreen"/>
-                                            <Setter Property="BorderThickness" Value="2"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
