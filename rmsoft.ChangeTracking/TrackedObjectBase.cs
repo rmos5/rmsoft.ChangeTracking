@@ -3,17 +3,35 @@ using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public partial class TrackedObjectBase : PropertyChangedBase, IChangeTracker
+    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public event EventHandler TrackerUpdated;
-        
-        protected IPropertyChangeTracker ChangeTracker { get; }
+
+        protected IPropertyChangeTracking ChangeTracker { get; }
+
+        private bool isTrackingEnabled;
+
+        public bool IsTrackingEnabled
+        {
+            get => isTrackingEnabled;
+            set
+            {
+                if (isTrackingEnabled != value)
+                {
+                    isTrackingEnabled = value;
+                    OnPropertyChanged(nameof(IsTrackingEnabled));
+                    RefreshModelState();
+                }
+            }
+        }
 
         public virtual bool IsTracking => ChangeTracker.IsTracking;
 
         public virtual bool HasChanges => ChangeTracker.HasChanges;
 
-        public IContextCommand ToggleEditingCommand { get; }
+        public IContextCommand ToggleTrackingCommand { get; }
 
         public IContextCommand UndoChangesCommand { get; }
 
@@ -24,62 +42,73 @@ namespace rmsoft.ChangeTracking
         public TrackedObjectBase()
         {
             ChangeTracker = new PropertyChangeTracker(this);
-            ChangeTracker.TrackerUpdated += ChangeTracker_TrackerUpdated;
+            ChangeTracker.TrackerUpdated += OnTrackerUpdated;
 
-            ToggleEditingCommand = new ToggleEditingCommandImpl(this);
+            ToggleTrackingCommand = new ToggleTrackingCommandImpl(this);
             UndoChangesCommand = new UndoChangesCommandImpl(this);
             RedoChangesCommand = new RedoChangesCommandImpl(this);
             ApplyChangesCommand = new ApplyChangesCommandImpl(this);
         }
 
-        private void ChangeTracker_TrackerUpdated(object sender, EventArgs e)
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChangedEventHandler h = PropertyChanged;
+            h?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected virtual void OnTrackerUpdated(object sender, EventArgs e)
         {
             RefreshModelState();
             EventHandler h = TrackerUpdated;
             h?.Invoke(this, e);
         }
-        
+
         public virtual void RefreshModelState()
         {
             OnPropertyChanged(nameof(IsTracking));
             OnPropertyChanged(nameof(HasChanges));
 
-            ToggleEditingCommand.RaiseCanExecuteChanged();
+            ToggleTrackingCommand.RaiseCanExecuteChanged();
             UndoChangesCommand.RaiseCanExecuteChanged();
             RedoChangesCommand.RaiseCanExecuteChanged();
             ApplyChangesCommand.RaiseCanExecuteChanged();
         }
 
-        public void StartTracking()
+        public virtual void StartTracking()
         {
+            if (!IsTrackingEnabled)
+                throw new InvalidOperationException("Object tracking is not enabled.");
+
             ChangeTracker.StartTracking();
             RefreshModelState();
         }
 
-        public void StopTracking(bool cancelChanges)
+        public virtual void StopTracking(bool cancelChanges)
         {
             ChangeTracker.StopTracking(cancelChanges);
             RefreshModelState();
         }
 
-        public bool CanUndo()
+        public virtual bool CanUndo()
         {
             return ChangeTracker.CanUndo();
         }
 
-        public void Undo()
+        public virtual void Undo()
         {
             ChangeTracker.Undo();
+            RefreshModelState();
         }
 
-        public bool CanRedo()
+        public virtual bool CanRedo()
         {
             return ChangeTracker.CanRedo();
         }
 
-        public void Redo()
+        public virtual void Redo()
         {
             ChangeTracker.Redo();
+            RefreshModelState();
         }
     }
 }

@@ -9,7 +9,15 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public class ListChangeTracker<T> : ChangeTrackerBase<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
+    public interface INotifyListChanged<T> : IList<T>, INotifyCollectionChanged
+    {
+    }
+
+    public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
+    {
+    }
+
+    public class ListChangeTracker<T> : ChangeTrackerBase<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>, IListChangeTracking<T>
     {
         public ListChangeTracker(INotifyListChanged<T> item)
             : base(item)
@@ -23,6 +31,8 @@ namespace rmsoft.ChangeTracking
 
         private void Item_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+                return; //Reset is not supported because ObservableCollection<T> reset event args does not contain inforamtion about removed items, .Net bug
             AddChange(e);
         }
 
@@ -45,11 +55,8 @@ namespace rmsoft.ChangeTracking
         protected override void StartTrackingOverride()
         {
             OriginalList = new List<T>(Item.Count);
-            for (int i = 0; i < Item.Count; i++)
-            {
-                OriginalList.Insert(0, Item[i]);
-            }
-
+            foreach(T obj in Item)
+                OriginalList.Add(obj);
             AddItemEvents();
         }
 
@@ -60,23 +67,17 @@ namespace rmsoft.ChangeTracking
 
         protected List<T> OriginalList { get; private set; }
 
-        protected override void SetOriginalValues()
+        protected override void SetOriginalValues(bool clear)
         {
             if (IsTracking)
                 RemoveItemEvents();
 
-            for (int i = 0; i < OriginalList.Count; i++)
-            {
-                if (Item.IndexOf(OriginalList[i]) != i)
-                {
-                    Item.Insert(i, OriginalList[i]);
-                }
-            }
+            Item.Clear();
+            foreach (T obj in OriginalList)
+                Item.Add(obj);
 
-            for (int i = Item.Count - 1; i > OriginalList.Count - 1; i--)
-            {
-                Item.RemoveAt(i);
-            }
+            if (clear)
+                OriginalList = null;
 
             if (IsTracking)
                 AddItemEvents();
@@ -92,10 +93,10 @@ namespace rmsoft.ChangeTracking
             switch (CurrentChange.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.RemoveAt(CurrentChange.NewStartingIndex);
+                    Item.RemoveAt(result.Value.NewStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Item.Insert(CurrentChange.OldStartingIndex, (T)CurrentChange.OldItems[0]);
+                    Item.Insert(result.Value.OldStartingIndex, (T)result.Value.OldItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     break;
@@ -125,7 +126,7 @@ namespace rmsoft.ChangeTracking
             switch (CurrentChange.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.Insert(CurrentChange.NewStartingIndex, (T)CurrentChange.NewItems[0]);
+                    Item.Insert(result.Value.NewStartingIndex, (T)result.Value.NewItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Remove:
                     Item.RemoveAt(CurrentChange.OldStartingIndex);
@@ -140,7 +141,7 @@ namespace rmsoft.ChangeTracking
                     break;
             }
 
-            result = result.Next;
+            result = CurrentNode.Next;
 
             if (IsTracking)
                 AddItemEvents();

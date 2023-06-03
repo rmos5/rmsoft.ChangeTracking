@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 
 namespace rmsoft.ChangeTracking
 {
-    public abstract class ChangeTrackerBase<TSource, TChange> : IChangeTracker<TSource, TChange>
+    public abstract class ChangeTrackerBase<TSource, TChange> : IChangeTracking<TSource, TChange>
         where TSource : class
     {
         public event EventHandler TrackerUpdated;
@@ -32,7 +33,7 @@ namespace rmsoft.ChangeTracking
 
         protected abstract void StopTrackingOverride(bool cancelChanges);
 
-        protected abstract void SetOriginalValues();
+        protected abstract void SetOriginalValues(bool clear);
 
         protected abstract LinkedListNode<TChange> ApplyUndoChange();
 
@@ -100,7 +101,7 @@ namespace rmsoft.ChangeTracking
             IsTracking = false;
 
             if (cancelChanges)
-                SetOriginalValues();
+                SetOriginalValues(true);
 
             RaiseTrackerUpdated();
         }

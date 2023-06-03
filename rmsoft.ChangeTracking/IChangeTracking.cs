@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace rmsoft.ChangeTracking
 {
-    public interface IChangeTracker
+    public interface IChangeTracking
     {
         event EventHandler TrackerUpdated;
         bool HasChanges { get; }
@@ -16,11 +16,10 @@ namespace rmsoft.ChangeTracking
         void Redo();
     }
 
-    public interface IChangeTracker<TSource, TChange> : IChangeTracker
+    public interface IChangeTracking<TSource, TChange> : IChangeTracking
         where TSource : class
     {
         TSource Item { get; }
-
         IEnumerable<TChange> Changes { get; }
         TChange CurrentChange { get; }
     }

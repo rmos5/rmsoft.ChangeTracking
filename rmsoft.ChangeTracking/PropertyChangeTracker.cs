@@ -6,7 +6,11 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public class PropertyChangeTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracker
+    public interface IPropertyChangeTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
+    {
+    }
+
+    public class PropertyChangeTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracking
     {
         protected struct PropertyValue
         {
@@ -79,16 +83,16 @@ namespace rmsoft.ChangeTracking
 
         public override bool CanUndo()
         {
-            return base.CanUndo()
-                || (CurrentNode != null
-                && CurrentNode.Value.CanUndo);
+            return CurrentNode != null
+                && (CurrentNode.Value.CanUndo
+                || CurrentNode.Previous != null);
         }
 
         public override bool CanRedo()
         {
-            return base.CanRedo()
-                || (CurrentNode != null
-                && CurrentNode.Value.CanRedo);
+            return CurrentNode != null
+                && (CurrentNode.Value.CanRedo
+                || CurrentNode.Next != null);
         }
 
         protected void ApplyChange(string name, object value)
@@ -107,6 +111,9 @@ namespace rmsoft.ChangeTracking
             if (!result.Value.CanUndo)
                 result = CurrentNode.Previous;
 
+            if (result == null)
+                return result;
+
             result.Value.Undo();
             ApplyChange(result.Value.PropertyName, result.Value.Current);
 
@@ -119,6 +126,9 @@ namespace rmsoft.ChangeTracking
 
             if (!result.Value.CanRedo)
                 result = CurrentNode.Next;
+
+            if (result == null)
+                return result;
 
             result.Value.Redo();
             ApplyChange(result.Value.PropertyName, result.Value.Current);
@@ -144,7 +154,7 @@ namespace rmsoft.ChangeTracking
             RemoveItemEvents();
         }
 
-        protected override void SetOriginalValues()
+        protected override void SetOriginalValues(bool clear)
         {
             if (IsTracking)
                 RemoveItemEvents();
@@ -153,6 +163,9 @@ namespace rmsoft.ChangeTracking
             {
                 Item.GetType().GetProperty(obj.Name).SetValue(Item, obj.Value);
             }
+
+            if (clear)
+                OriginalPropertyValues = null;
 
             if (IsTracking)
                 AddItemEvents();
