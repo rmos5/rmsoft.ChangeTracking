@@ -69,8 +69,12 @@ namespace rmsoft.ChangeTracking
         public void Undo()
         {
             CurrentNode = ApplyUndoChange();
-            if (CurrentNode == null)
+
+            if (!CanUndo())
+            {
                 changesList.Clear();
+            }
+               
             RaiseTrackerUpdated();
         }
 

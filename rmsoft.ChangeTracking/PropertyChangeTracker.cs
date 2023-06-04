@@ -107,15 +107,22 @@ namespace rmsoft.ChangeTracking
         protected override LinkedListNode<PropertyChanges> ApplyUndoChange()
         {
             LinkedListNode<PropertyChanges> result = CurrentNode;
+            PropertyChanges change = result.Value;
 
-            if (!result.Value.CanUndo)
+            if (!change.CanUndo)
+            {
                 result = CurrentNode.Previous;
+                change = result?.Value;
+            }
 
             if (result == null)
                 return result;
 
-            result.Value.Undo();
-            ApplyChange(result.Value.PropertyName, result.Value.Current);
+            change.Undo();
+            ApplyChange(change.PropertyName, change.Current);
+
+            if (!change.CanUndo)
+                result = CurrentNode.Previous;
 
             return result;
         }
@@ -123,15 +130,19 @@ namespace rmsoft.ChangeTracking
         protected override LinkedListNode<PropertyChanges> ApplyRedoChange()
         {
             LinkedListNode<PropertyChanges> result = CurrentNode;
+            PropertyChanges change = result.Value;
 
-            if (!result.Value.CanRedo)
+            if (!change.CanRedo)
+            {
                 result = CurrentNode.Next;
+                change = result?.Value;
+            }
 
             if (result == null)
                 return result;
 
-            result.Value.Redo();
-            ApplyChange(result.Value.PropertyName, result.Value.Current);
+            change.Redo();
+            ApplyChange(change.PropertyName, change.Current);
 
             return result;
         }
