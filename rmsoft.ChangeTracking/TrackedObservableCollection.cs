@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
@@ -51,6 +52,8 @@ namespace rmsoft.ChangeTracking
         }
 
         public bool HasSelectedItem => SelectedItem != null;
+
+        protected bool SuppressCollectionChangeEvent { get; set; }
 
         public IContextCommand ToggleTrackingCommand { get; }
 
@@ -103,6 +106,12 @@ namespace rmsoft.ChangeTracking
             base.OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
         }
 
+        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            if (!SuppressCollectionChangeEvent)
+                base.OnCollectionChanged(e);
+        }
+
         protected virtual void OnSelectedItemChanged()
         {
         }
@@ -147,6 +156,21 @@ namespace rmsoft.ChangeTracking
         protected override void MoveItem(int oldIndex, int newIndex)
         {
             base.MoveItem(oldIndex, newIndex);
+            RefreshModelState();
+        }
+
+        public void ReplaceAt(int index, T item)
+        {
+            int index1 = IndexOf(item);
+            if (index1 == index)
+                return;
+
+            T item1 = this[index];
+            base.SetItem(index, item);
+            base.SetItem(index1, item1);
+
+            SelectedItem = item;
+
             RefreshModelState();
         }
 

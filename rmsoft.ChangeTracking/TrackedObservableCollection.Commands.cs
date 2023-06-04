@@ -138,12 +138,8 @@ namespace rmsoft.ChangeTracking
                 index = int.Parse(s);
             else if (parameter is int i)
                 index = i;
-            
-            T item2 = this[index];
-            int index2 = IndexOf(SelectedItem);
-            MoveItem(index2, index);
-            index = IndexOf(item2);
-            MoveItem(index, index2);
+
+            ReplaceAt(index, SelectedItem);
         }
 
         public class ClearItemsCommandImpl : TrackedCollectionCommandBase

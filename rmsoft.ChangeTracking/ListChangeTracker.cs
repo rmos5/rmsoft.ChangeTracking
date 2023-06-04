@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
     public interface INotifyListChanged<T> : IList<T>, INotifyPropertyChanged, INotifyCollectionChanged
     {
         void Move(int oldIndex, int newIndex);
+
+        void ReplaceAt(int index, T item);
     }
 
     public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
@@ -36,10 +33,11 @@ namespace rmsoft.ChangeTracking
             {
                 StopTracking(true);
                 return; //Reset is not supported because ObservableCollection<T> reset event args does not contain inforamtion about removed items, .Net bug
-            } else if (e.Action == NotifyCollectionChangedAction.Replace)
-            {
-                return; //ObservableCollection<T>.SetItem raises Replace event, but behaves wrongly, replaced item removed from collection, .Net bug
             }
+            //} else if (e.Action == NotifyCollectionChangedAction.Replace)
+            //{
+            //    return; //ObservableCollection<T>.SetItem raises Replace event, but behaves wrongly, replaced item removed from collection, .Net bug
+            //}
 
             AddChange(e);
         }
@@ -63,7 +61,7 @@ namespace rmsoft.ChangeTracking
         protected override void StartTrackingOverride()
         {
             OriginalList = new List<T>(Item.Count);
-            foreach(T obj in Item)
+            foreach (T obj in Item)
                 OriginalList.Add(obj);
             AddItemEvents();
         }
@@ -108,6 +106,13 @@ namespace rmsoft.ChangeTracking
                     Item.Insert(change.OldStartingIndex, (T)change.OldItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Replace:
+                    Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0]);
+                    if (result.Previous?.Value?.Action == NotifyCollectionChangedAction.Replace)
+                    {
+                        result = result.Previous;
+                        change = result.Value;
+                        Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0]);
+                    }
                     break;
                 case NotifyCollectionChangedAction.Move:
                     Item.Move(change.NewStartingIndex, change.OldStartingIndex);
@@ -118,7 +123,7 @@ namespace rmsoft.ChangeTracking
                     break;
             }
 
-            result = CurrentNode.Previous;
+            result = result.Previous;
 
             if (IsTracking)
                 AddItemEvents();
@@ -143,6 +148,13 @@ namespace rmsoft.ChangeTracking
                     Item.RemoveAt(change.OldStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Replace:
+                    Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0]);
+                    if (result.Next?.Value?.Action == NotifyCollectionChangedAction.Replace)
+                    {
+                        result = result.Next;
+                        change = result.Value;
+                        Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0]);
+                    }
                     break;
                 case NotifyCollectionChangedAction.Move:
                     Item.Move(change.OldStartingIndex, change.NewStartingIndex);
@@ -153,7 +165,7 @@ namespace rmsoft.ChangeTracking
                     break;
             }
 
-            result = CurrentNode.Next;
+            result = result.Next;
 
             if (IsTracking)
                 AddItemEvents();
