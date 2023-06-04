@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
@@ -50,6 +51,99 @@ namespace rmsoft.ChangeTracking
         private void ExecuteRemoveItemCommand(object parameter)
         {
             Remove(SelectedItem);            
+        }
+
+        public class MoveItemCommandImpl : TrackedCollectionCommandBase
+        {
+            public MoveItemCommandImpl(TrackedObservableCollection<T> context)
+                : base(context)
+            {
+            }
+
+            public override bool CanExecute(object parameter)
+            {
+                return base.CanExecute(parameter)
+                    && Context.CanExecuteMoveItemCommand(parameter);
+
+            }
+
+            public override void Execute(object parameter)
+            {
+                Context.ExecuteMoveItemCommand(parameter);
+            }
+        }
+
+        protected virtual bool CanExecuteMoveItemCommand(object parameter)
+        {
+            int index = -1;
+            if (parameter is string s)
+                index = int.Parse(s);
+            else if (parameter is int i)
+                index = i;
+
+            return Count > 0
+                && HasSelectedItem
+                && IndexOf(SelectedItem) != index;
+        }
+
+        private void ExecuteMoveItemCommand(object parameter)
+        {
+            int index = -1;
+            if (parameter is string s)
+                index = int.Parse(s);
+            else if (parameter is int i)
+                index = i;
+
+            int idx = IndexOf(SelectedItem);
+            MoveItem(idx, index);
+        }
+
+        public class ReplaceItemCommandImpl : TrackedCollectionCommandBase
+        {
+            public ReplaceItemCommandImpl(TrackedObservableCollection<T> context)
+                : base(context)
+            {
+            }
+
+            public override bool CanExecute(object parameter)
+            {
+                return base.CanExecute(parameter)
+                    && Context.CanExecuteReplaceItemCommand(parameter);
+
+            }
+
+            public override void Execute(object parameter)
+            {
+                Context.ExecuteReplaceItemCommand(parameter);
+            }
+        }
+
+        protected virtual bool CanExecuteReplaceItemCommand(object parameter)
+        {
+            int index = -1;
+            if (parameter is string s)
+                index = int.Parse(s);
+            else if (parameter is int i)
+                index = i;
+
+            return Count > 0
+                && HasSelectedItem
+                && IndexOf(SelectedItem) != index;
+        }
+
+        private void ExecuteReplaceItemCommand(object parameter)
+        {
+            int index = -1;
+            if (parameter is string s)
+                index = int.Parse(s);
+            else if (parameter is int i)
+                index = i;
+            
+            T item2 = this[index];
+            int index2 = IndexOf(SelectedItem);
+            MoveItem(index2, index);
+            index = IndexOf(item2);
+            MoveItem(index, index2);
         }
 
         public class ClearItemsCommandImpl : TrackedCollectionCommandBase

@@ -33,7 +33,7 @@ namespace rmsoft.ChangeTracking
 
         protected abstract void StopTrackingOverride(bool cancelChanges);
 
-        protected abstract void SetOriginalValues(bool clear);
+        protected abstract void SetOriginalValues(bool clearAfterSet);
 
         protected abstract LinkedListNode<TChange> ApplyUndoChange();
 

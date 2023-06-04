@@ -154,7 +154,7 @@ namespace rmsoft.ChangeTracking
             RemoveItemEvents();
         }
 
-        protected override void SetOriginalValues(bool clear)
+        protected override void SetOriginalValues(bool clearAfterSet)
         {
             if (IsTracking)
                 RemoveItemEvents();
@@ -164,7 +164,7 @@ namespace rmsoft.ChangeTracking
                 Item.GetType().GetProperty(obj.Name).SetValue(Item, obj.Value);
             }
 
-            if (clear)
+            if (clearAfterSet)
                 OriginalPropertyValues = null;
 
             if (IsTracking)

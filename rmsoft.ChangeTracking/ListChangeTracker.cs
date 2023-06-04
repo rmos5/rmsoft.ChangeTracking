@@ -9,8 +9,9 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public interface INotifyListChanged<T> : IList<T>, INotifyCollectionChanged
+    public interface INotifyListChanged<T> : IList<T>, INotifyPropertyChanged, INotifyCollectionChanged
     {
+        void Move(int oldIndex, int newIndex);
     }
 
     public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
@@ -32,7 +33,14 @@ namespace rmsoft.ChangeTracking
         private void Item_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                StopTracking(true);
                 return; //Reset is not supported because ObservableCollection<T> reset event args does not contain inforamtion about removed items, .Net bug
+            } else if (e.Action == NotifyCollectionChangedAction.Replace)
+            {
+                return; //ObservableCollection<T>.SetItem raises Replace event, but behaves wrongly, replaced item removed from collection, .Net bug
+            }
+
             AddChange(e);
         }
 
@@ -67,7 +75,7 @@ namespace rmsoft.ChangeTracking
 
         protected List<T> OriginalList { get; private set; }
 
-        protected override void SetOriginalValues(bool clear)
+        protected override void SetOriginalValues(bool clearAfterSet)
         {
             if (IsTracking)
                 RemoveItemEvents();
@@ -76,7 +84,7 @@ namespace rmsoft.ChangeTracking
             foreach (T obj in OriginalList)
                 Item.Add(obj);
 
-            if (clear)
+            if (clearAfterSet)
                 OriginalList = null;
 
             if (IsTracking)
@@ -86,6 +94,7 @@ namespace rmsoft.ChangeTracking
         protected override LinkedListNode<NotifyCollectionChangedEventArgs> ApplyUndoChange()
         {
             LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode;
+            NotifyCollectionChangedEventArgs change = result.Value;
 
             if (IsTracking)
                 RemoveItemEvents();
@@ -93,14 +102,15 @@ namespace rmsoft.ChangeTracking
             switch (CurrentChange.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.RemoveAt(result.Value.NewStartingIndex);
+                    Item.RemoveAt(change.NewStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Item.Insert(result.Value.OldStartingIndex, (T)result.Value.OldItems[0]);
+                    Item.Insert(change.OldStartingIndex, (T)change.OldItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     break;
                 case NotifyCollectionChangedAction.Move:
+                    Item.Move(change.NewStartingIndex, change.OldStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     break;
@@ -119,21 +129,23 @@ namespace rmsoft.ChangeTracking
         protected override LinkedListNode<NotifyCollectionChangedEventArgs> ApplyRedoChange()
         {
             LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode;
+            NotifyCollectionChangedEventArgs change = result.Value;
 
             if (IsTracking)
                 RemoveItemEvents();
 
-            switch (CurrentChange.Action)
+            switch (change.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.Insert(result.Value.NewStartingIndex, (T)result.Value.NewItems[0]);
+                    Item.Insert(change.NewStartingIndex, (T)change.NewItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Item.RemoveAt(CurrentChange.OldStartingIndex);
+                    Item.RemoveAt(change.OldStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     break;
                 case NotifyCollectionChangedAction.Move:
+                    Item.Move(change.OldStartingIndex, change.NewStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     break;

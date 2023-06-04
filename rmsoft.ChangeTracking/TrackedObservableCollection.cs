@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
@@ -62,6 +63,10 @@ namespace rmsoft.ChangeTracking
 
         public IContextCommand RemoveItemCommand { get; }
 
+        public IContextCommand MoveItemCommand { get; }
+
+        public IContextCommand ReplaceItemCommand { get; }
+
         public IContextCommand ClearItemsCommand { get; }
 
         protected TrackedObservableCollection()
@@ -74,6 +79,8 @@ namespace rmsoft.ChangeTracking
             RedoChangesCommand = new RedoChangesCommandImpl(this);
             ApplyChangesCommand = new ApplyChangesCommandImpl(this);
             RemoveItemCommand = new RemoveItemCommandImpl(this);
+            MoveItemCommand = new MoveItemCommandImpl(this);
+            ReplaceItemCommand = new ReplaceItemCommandImpl(this);
             ClearItemsCommand = new ClearItemsCommandImpl(this);
         }
 
@@ -111,6 +118,8 @@ namespace rmsoft.ChangeTracking
             RedoChangesCommand.RaiseCanExecuteChanged();
             ApplyChangesCommand.RaiseCanExecuteChanged();
             RemoveItemCommand.RaiseCanExecuteChanged();
+            MoveItemCommand.RaiseCanExecuteChanged();
+            ReplaceItemCommand.RaiseCanExecuteChanged();
             ClearItemsCommand.RaiseCanExecuteChanged();
         }
 
@@ -147,7 +156,6 @@ namespace rmsoft.ChangeTracking
             base.ClearItems();
             RefreshModelState();
         }
-
 
         public virtual void StartTracking()
         {

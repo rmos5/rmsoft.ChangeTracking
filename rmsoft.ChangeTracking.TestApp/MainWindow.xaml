@@ -19,29 +19,17 @@
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
-                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
             <GroupBox Header="Data">
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                    <WrapPanel Orientation="Horizontal">
-                        <Button Content="Get Data" Command="{Binding GetDataCommand}"/>
-                        <CheckBox VerticalAlignment="Center" Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
-                        <Button Content="New" Command="{Binding AddNewDataCommand}"/>
-                        <Button Content="Remove" Command="{Binding RemoveItemCommand}"/>
-                        <Button Content="Clear" Command="{Binding ClearItemsCommand}"/>
-                        <Button Content="Undo" Command="{Binding UndoChangesCommand}"/>
-                        <Button Content="Redo" Command="{Binding RedoChangesCommand}"/>
-                        <Button Content="Apply" Command="{Binding ApplyChangesCommand}"/>
-                        <CheckBox Content="Insert data" IsChecked="{Binding IsInsertData,Mode=TwoWay}"/>
-                    </WrapPanel>
-                    
-                    <ListBox Grid.Row="1" d:ItemsSource="{d:SampleData ItemCount=5}" d:SelectedIndex="3" ItemsSource="{Binding}" SelectedItem="{Binding SelectedItem,Mode=TwoWay}">
+                    <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" d:SelectedIndex="3" ItemsSource="{Binding}" SelectedItem="{Binding SelectedItem,Mode=TwoWay}">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type local:NamedObject}">
                                 <StackPanel Orientation="Horizontal" x:Name="stackPanel1">
@@ -66,23 +54,42 @@
                             </Style>
                         </ListBox.ItemContainerStyle>
                     </ListBox>
+
+                    <StackPanel Grid.Column="1">
+                        <CheckBox Content="Insert data" IsChecked="{Binding IsInsertData,Mode=TwoWay}"/>
+                        <Button Content="Get Data" Command="{Binding GetDataCommand}"/>
+                        <CheckBox Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
+                        <Button Content="New" Command="{Binding AddNewDataCommand}"/>
+                        <Button Content="Remove" Command="{Binding RemoveItemCommand}"/>
+                        <Button Content="Move top" Command="{Binding MoveItemCommand}" CommandParameter="0"/>
+                        <Button Content="Replace top" Command="{Binding ReplaceItemCommand}" CommandParameter="0"/>
+                        <Button Content="Clear" Command="{Binding ClearItemsCommand}"/>
+                        <Button Content="Undo" Command="{Binding UndoChangesCommand}"/>
+                        <Button Content="Redo" Command="{Binding RedoChangesCommand}"/>
+                        <Button Content="Apply" Command="{Binding ApplyChangesCommand}"/>
+
+                    </StackPanel>
                 </Grid>
+
             </GroupBox>
 
             <GroupBox Grid.Column="1" Header="Item">
                 <Grid IsEnabled="{Binding HasSelectedItem}">
                     <Grid DataContext="{Binding SelectedItem, Mode=OneWay}" >
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition/>
-                        </Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <CheckBox Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
                             <Button Content="Undo" Command="{Binding UndoChangesCommand}"/>
                             <Button Content="Redo" Command="{Binding RedoChangesCommand}"/>
-                            <CheckBox VerticalAlignment="Center" Content="Edit" Command="{Binding ToggleTrackingCommand}" IsChecked="{Binding IsTracking, Mode=OneWay}"/>
+                            <Button Content="Apply" Command="{Binding ApplyChangesCommand}"/>
                         </StackPanel>
-                        <StackPanel Grid.Row="1" HorizontalAlignment="Left">
-                            
+
+                        <StackPanel Grid.Column="1">
+
                             <StackPanel.Resources>
                                 <Style TargetType="TextBox">
                                     <Setter Property="IsReadOnlyCaretVisible" Value="True"/>
@@ -96,10 +103,10 @@
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Resources>
-                            
+
                             <TextBox Text="{Binding Name, Mode=TwoWay}"/>
                             <TextBox Text="{Binding Description, Mode=TwoWay}"/>
-                            <Button Margin="0,5,0,0" Content="Apply" Command="{Binding ApplyChangesCommand}"/>
+
                         </StackPanel>
                     </Grid>
                 </Grid>
