@@ -8,11 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\rmsoft.ChangeTracking\rmsoft.ChangeTracking.csproj" />
+    <Compile Remove="Converters\**" />
+    <EmbeddedResource Remove="Converters\**" />
+    <None Remove="Converters\**" />
+    <Page Remove="Converters\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Converters\" />
+    <ProjectReference Include="..\rmsoft.ChangeTracking\rmsoft.ChangeTracking.csproj" />
   </ItemGroup>
 
 </Project>
