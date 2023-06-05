@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
@@ -131,26 +132,55 @@ namespace rmsoft.ChangeTracking
             ClearItemsCommand.RaiseCanExecuteChanged();
         }
 
+        public void Add(T item, bool select)
+        {
+            Add(item);
+            if (select)
+                SelectedItem = item;
+        }
+
+        public void Insert(int index, T item, bool select)
+        {
+            this.InsertItem(index, item);
+            if (select)
+                SelectedItem = item;
+        }
+
         protected override void InsertItem(int index, T item)
         {
             base.InsertItem(index, item);
-            SelectedItem = item;
             RefreshModelState();
+        }
+
+        public void Remove(T item, bool select)
+        {
+            int idx = IndexOf(item);
+            this.Remove(item);
+
+            if (select)
+            {
+                if (Count == 0)
+                    SelectedItem = default(T);
+                else
+                {
+                    idx--;
+                    SelectedItem = this[idx < 0 ? 0 : idx];
+                }
+            }
         }
 
         protected override void RemoveItem(int index)
         {
-            int idx = index;
             base.RemoveItem(index);
-            if (Count == 0)
-                SelectedItem = default(T);
-            else
-            {
-                idx--;
-                SelectedItem = this[idx < 0 ? 0 : idx];
-            }
-
             RefreshModelState();
+        }
+
+        public void Move(int oldIndex, int newIndex, bool select)
+        {
+            T item = this[oldIndex];
+            Move(oldIndex, newIndex);
+            if (select)
+                SelectedItem = item;
         }
 
         protected override void MoveItem(int oldIndex, int newIndex)
@@ -159,7 +189,7 @@ namespace rmsoft.ChangeTracking
             RefreshModelState();
         }
 
-        public void ReplaceAt(int index, T item)
+        public void ReplaceAt(int index, T item, bool select)
         {
             int index1 = IndexOf(item);
             if (index1 == index)
@@ -169,7 +199,8 @@ namespace rmsoft.ChangeTracking
             base.SetItem(index, item);
             base.SetItem(index1, item1);
 
-            SelectedItem = item;
+            if (select)
+                SelectedItem = item;
 
             RefreshModelState();
         }

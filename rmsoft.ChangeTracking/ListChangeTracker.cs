@@ -6,9 +6,9 @@ namespace rmsoft.ChangeTracking
 {
     public interface INotifyListChanged<T> : IList<T>, INotifyPropertyChanged, INotifyCollectionChanged
     {
-        void Move(int oldIndex, int newIndex);
+        void Move(int oldIndex, int newIndex, bool select);
 
-        void ReplaceAt(int index, T item);
+        void ReplaceAt(int index, T item, bool select);
     }
 
     public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
@@ -106,16 +106,16 @@ namespace rmsoft.ChangeTracking
                     Item.Insert(change.OldStartingIndex, (T)change.OldItems[0]);
                     break;
                 case NotifyCollectionChangedAction.Replace:
-                    Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0]);
+                    Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0], true);
                     if (result.Previous?.Value?.Action == NotifyCollectionChangedAction.Replace)
                     {
                         result = result.Previous;
                         change = result.Value;
-                        Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0]);
+                        Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0], true);
                     }
                     break;
                 case NotifyCollectionChangedAction.Move:
-                    Item.Move(change.NewStartingIndex, change.OldStartingIndex);
+                    Item.Move(change.NewStartingIndex, change.OldStartingIndex, true);
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     break;
@@ -148,16 +148,16 @@ namespace rmsoft.ChangeTracking
                     Item.RemoveAt(change.OldStartingIndex);
                     break;
                 case NotifyCollectionChangedAction.Replace:
-                    Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0]);
+                    Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0], true);
                     if (result.Next?.Value?.Action == NotifyCollectionChangedAction.Replace)
                     {
                         result = result.Next;
                         change = result.Value;
-                        Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0]);
+                        Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0], true);
                     }
                     break;
                 case NotifyCollectionChangedAction.Move:
-                    Item.Move(change.OldStartingIndex, change.NewStartingIndex);
+                    Item.Move(change.OldStartingIndex, change.NewStartingIndex, true);
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     break;

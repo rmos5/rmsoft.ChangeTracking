@@ -40,17 +40,19 @@ namespace rmsoft.ChangeTracking.TestApp
             AddNewDataCommand.RaiseCanExecuteChanged();
         }
 
-        private NamedObject CreateAndAddNewData(int number)
+        protected NamedObject CreateNewData(int number)
         {
             NamedObject result = new NamedObject($"Name{number}", $"Description{number}");
             result.IsTrackingEnabled = true;
-
-            if (IsInsertData)
-                Insert(0, result);
-            else
-                Add(result);
-
             return result;
+        }
+
+        protected void AddData(NamedObject item, bool select)
+        {
+            if (IsInsertData)
+                Insert(0, item, select);
+            else
+                Add(item, select);
         }
     }
 }

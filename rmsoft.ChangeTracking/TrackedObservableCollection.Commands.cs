@@ -48,9 +48,9 @@ namespace rmsoft.ChangeTracking
                    && HasSelectedItem;
         }
 
-        private void ExecuteRemoveItemCommand(object parameter)
+        protected virtual void ExecuteRemoveItemCommand(object parameter)
         {
-            Remove(SelectedItem);            
+            Remove(SelectedItem, true);
         }
 
         public class MoveItemCommandImpl : TrackedCollectionCommandBase
@@ -86,7 +86,7 @@ namespace rmsoft.ChangeTracking
                 && IndexOf(SelectedItem) != index;
         }
 
-        private void ExecuteMoveItemCommand(object parameter)
+        protected virtual void ExecuteMoveItemCommand(object parameter)
         {
             int index = -1;
             if (parameter is string s)
@@ -95,7 +95,7 @@ namespace rmsoft.ChangeTracking
                 index = i;
 
             int idx = IndexOf(SelectedItem);
-            MoveItem(idx, index);
+            Move(idx, index, true);
         }
 
         public class ReplaceItemCommandImpl : TrackedCollectionCommandBase
@@ -131,7 +131,7 @@ namespace rmsoft.ChangeTracking
                 && IndexOf(SelectedItem) != index;
         }
 
-        private void ExecuteReplaceItemCommand(object parameter)
+        protected virtual void ExecuteReplaceItemCommand(object parameter)
         {
             int index = -1;
             if (parameter is string s)
@@ -139,7 +139,7 @@ namespace rmsoft.ChangeTracking
             else if (parameter is int i)
                 index = i;
 
-            ReplaceAt(index, SelectedItem);
+            ReplaceAt(index, SelectedItem, true);
         }
 
         public class ClearItemsCommandImpl : TrackedCollectionCommandBase

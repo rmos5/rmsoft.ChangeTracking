@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 
 namespace rmsoft.ChangeTracking.TestApp
 {
@@ -37,9 +38,12 @@ namespace rmsoft.ChangeTracking.TestApp
             NamedObject obj;
             for (int i = 0; i < num; i++)
             {
-                obj = CreateAndAddNewData(i);
+                obj = CreateNewData(i);
+                AddData(obj, false);
                 num1++;
             }
+
+            SelectedItem = this.FirstOrDefault();
         }
 
         public class AddNewDataCommandImpl : ContextCommandBase<MainContext>
@@ -70,7 +74,8 @@ namespace rmsoft.ChangeTracking.TestApp
             if (Count == 0)
                 Number = 1000;
 
-            CreateAndAddNewData(Number++);
+            NamedObject obj = CreateNewData(Number++);
+            AddData(obj, true);
         }
     }
 }
