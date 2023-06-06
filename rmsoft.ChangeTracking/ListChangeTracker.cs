@@ -1,16 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace rmsoft.ChangeTracking
 {
-    public interface INotifyListChanged<T> : IList<T>, INotifyPropertyChanged, INotifyCollectionChanged
-    {
-        void Move(int oldIndex, int newIndex, bool select);
-
-        void ReplaceAt(int index, T item, bool select);
-    }
-
     public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
     {
     }
@@ -42,14 +36,14 @@ namespace rmsoft.ChangeTracking
             AddChange(e);
         }
 
-        protected void RemoveItemEvents()
-        {
-            Item.CollectionChanged -= Item_CollectionChanged;
-        }
-
         protected void AddItemEvents()
         {
             Item.CollectionChanged += Item_CollectionChanged;
+        }
+
+        protected void RemoveItemEvents()
+        {
+            Item.CollectionChanged -= Item_CollectionChanged;
         }
 
         public override bool CanUndo()
@@ -100,10 +94,12 @@ namespace rmsoft.ChangeTracking
             switch (CurrentChange.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.RemoveAt(change.NewStartingIndex);
+                    Debug.WriteLine($"Undo add:{change.NewItems[0]}", GetType().Name);
+                    Item.Remove((T)change.NewItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Item.Insert(change.OldStartingIndex, (T)change.OldItems[0]);
+                    Debug.WriteLine($"Undo remove:{change.OldItems[0]}", GetType().Name);
+                    Item.Insert(change.OldStartingIndex, (T)change.OldItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0], true);
@@ -133,7 +129,7 @@ namespace rmsoft.ChangeTracking
 
         protected override LinkedListNode<NotifyCollectionChangedEventArgs> ApplyRedoChange()
         {
-            LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode;
+            LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode.Next;
             NotifyCollectionChangedEventArgs change = result.Value;
 
             if (IsTracking)
@@ -142,18 +138,20 @@ namespace rmsoft.ChangeTracking
             switch (change.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Item.Insert(change.NewStartingIndex, (T)change.NewItems[0]);
+                    Debug.WriteLine($"Redo add:{change.NewItems[0]}", GetType().Name);
+                    Item.Insert(change.NewStartingIndex, (T)change.NewItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Item.RemoveAt(change.OldStartingIndex);
+                    Debug.WriteLine($"Redo remove:{change.OldItems[0]}", GetType().Name);
+                    Item.Remove((T)change.OldItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Replace:
-                    Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0], true);
+                    Item.ReplaceAt(change.OldStartingIndex, (T)change.NewItems[0], true);
                     if (result.Next?.Value?.Action == NotifyCollectionChangedAction.Replace)
                     {
                         result = result.Next;
                         change = result.Value;
-                        Item.ReplaceAt(change.NewStartingIndex, (T)change.NewItems[0], true);
+                        Item.ReplaceAt(change.OldStartingIndex, (T)change.NewItems[0], true);
                     }
                     break;
                 case NotifyCollectionChangedAction.Move:
@@ -164,8 +162,6 @@ namespace rmsoft.ChangeTracking
                 default:
                     break;
             }
-
-            result = result.Next;
 
             if (IsTracking)
                 AddItemEvents();
