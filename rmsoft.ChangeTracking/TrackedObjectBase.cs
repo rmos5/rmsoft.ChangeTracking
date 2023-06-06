@@ -1,15 +1,23 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject
+    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangeTracking
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
         public event EventHandler TrackerUpdated;
 
         protected IPropertyChangeTracking ChangeTracker { get; }
+
+        public INotifyPropertyChanged Item => ChangeTracker.Item;
+
+        public IEnumerable<PropertyChanges> Changes => ChangeTracker.Changes;
+
+        public PropertyChanges CurrentChange => ChangeTracker.CurrentChange;
+
 
         private bool isTrackingEnabled;
 
@@ -67,6 +75,8 @@ namespace rmsoft.ChangeTracking
         {
             OnPropertyChanged(nameof(IsTracking));
             OnPropertyChanged(nameof(HasChanges));
+            OnPropertyChanged(nameof(CurrentChange));
+            OnPropertyChanged(nameof(Changes));
 
             ToggleTrackingCommand.RaiseCanExecuteChanged();
             UndoChangesCommand.RaiseCanExecuteChanged();

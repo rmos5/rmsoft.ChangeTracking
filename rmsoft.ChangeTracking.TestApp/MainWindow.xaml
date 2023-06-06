@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:rmsoft.ChangeTracking.TestApp"
+        xmlns:converters="clr-namespace:rmsoft.ChangeTracking.TestApp.Converters"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
         d:DataContext="{d:DesignData Type=local:MainContext,IsDesignTimeCreatable=False}">
@@ -29,31 +30,50 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" d:SelectedIndex="3" ItemsSource="{Binding}" SelectedItem="{Binding SelectedItem,Mode=TwoWay}">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type local:NamedObject}">
-                                <StackPanel Orientation="Horizontal" x:Name="stackPanel1">
-                                    <TextBlock Text="{Binding Name}" x:Name="textBlock1"/>
-                                </StackPanel>
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding HasChanges}" Value="True">
-                                        <Setter TargetName="stackPanel1" Property="Background" Value="LightGreen"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsTracking}" Value="True">
-                                        <Setter TargetName="textBlock1" Property="FontWeight" Value="SemiBold"/>
-                                        <Setter TargetName="textBlock1" Property="FontSize" Value="14"/>
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Padding" Value="0"/>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="2*"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <ListBox d:ItemsSource="{d:SampleData ItemCount=5}" d:SelectedIndex="3" ItemsSource="{Binding}" SelectedItem="{Binding SelectedItem,Mode=TwoWay}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:NamedObject}">
+                                    <StackPanel Orientation="Horizontal" x:Name="stackPanel1">
+                                        <TextBlock Text="{Binding Name}" x:Name="textBlock1"/>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasChanges}" Value="True">
+                                            <Setter TargetName="stackPanel1" Property="Background" Value="LightGreen"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsTracking}" Value="True">
+                                            <Setter TargetName="textBlock1" Property="FontWeight" Value="SemiBold"/>
+                                            <Setter TargetName="textBlock1" Property="FontSize" Value="14"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Changes}" SelectedItem="{Binding CurrentChange, Mode=OneWay}">
+                            <ListBox.Resources>
+                                <converters:NotifyPropertyChangedEventArgsConverter x:Key="notifyPropertyChangedEventArgsConverter1"/>
+                            </ListBox.Resources>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource notifyPropertyChangedEventArgsConverter1}}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                    </Grid>
 
                     <StackPanel Grid.Column="1">
                         <CheckBox Content="Insert data" IsChecked="{Binding IsInsertData,Mode=TwoWay}"/>
@@ -88,26 +108,64 @@
                             <Button Content="Apply" Command="{Binding ApplyChangesCommand}"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1">
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
 
-                            <StackPanel.Resources>
-                                <Style TargetType="TextBox">
-                                    <Setter Property="IsReadOnlyCaretVisible" Value="True"/>
-                                    <Setter Property="IsReadOnly" Value="True"/>
-                                    <Setter Property="Margin" Value="2"/>
-                                    <Setter Property="Padding" Value="2"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsTracking}" Value="True">
-                                            <Setter Property="IsReadOnly" Value="False"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Resources>
+                            <StackPanel>
 
-                            <TextBox Text="{Binding Name, Mode=TwoWay}"/>
-                            <TextBox Text="{Binding Description, Mode=TwoWay}"/>
+                                <StackPanel.Resources>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="IsReadOnlyCaretVisible" Value="True"/>
+                                        <Setter Property="IsReadOnly" Value="True"/>
+                                        <Setter Property="Margin" Value="2"/>
+                                        <Setter Property="Padding" Value="2"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTracking}" Value="True">
+                                                <Setter Property="IsReadOnly" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Resources>
 
-                        </StackPanel>
+                                <TextBox Text="{Binding Name, Mode=TwoWay}"/>
+                                <TextBox Text="{Binding Description, Mode=TwoWay}"/>
+
+                            </StackPanel>
+
+                            <ListBox Grid.Row="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding Changes}" SelectedItem="{Binding CurrentChange, Mode=OneWay}">
+
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/>
+                                                <ColumnDefinition Width="4*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding PropertyName}"/>
+                                            <ListBox Grid.Column="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding}" SelectedItem="{Binding Current, Mode=OneWay}">
+                                                <ListBox.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ListBox.ItemsPanel>
+                                            </ListBox>
+
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                
+                            </ListBox>
+
+                        </Grid>
                     </Grid>
                 </Grid>
             </GroupBox>

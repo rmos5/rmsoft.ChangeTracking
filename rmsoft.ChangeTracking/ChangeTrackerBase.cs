@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
 
@@ -18,7 +19,9 @@ namespace rmsoft.ChangeTracking
 
         private LinkedList<TChange> changesList = new LinkedList<TChange>();
 
-        public IEnumerable<TChange> Changes => changesList;
+        private ObservableCollection<TChange> changes = new ObservableCollection<TChange>();
+
+        public IEnumerable<TChange> Changes => changes;
 
         protected LinkedListNode<TChange> CurrentNode { get; private set; }
 
@@ -49,10 +52,13 @@ namespace rmsoft.ChangeTracking
         {
             while (CanRedo())
             {
-                changesList.RemoveLast();
+                TChange last = changesList.Last();
+                changesList.Remove(last);
+                changes.Remove(last);
             }
 
             CurrentNode = changesList.AddLast(change);
+            changes.Add(change);
             RaiseTrackerUpdated();
         }
 
@@ -73,6 +79,7 @@ namespace rmsoft.ChangeTracking
             if (!CanUndo())
             {
                 changesList.Clear();
+                changes.Clear();
             }
                
             RaiseTrackerUpdated();
@@ -102,6 +109,7 @@ namespace rmsoft.ChangeTracking
             StopTrackingOverride(cancelChanges);
             CurrentNode = null;
             changesList.Clear();
+            changes.Clear();
             IsTracking = false;
 
             if (cancelChanges)

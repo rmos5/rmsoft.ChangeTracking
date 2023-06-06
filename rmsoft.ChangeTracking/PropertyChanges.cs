@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public class PropertyChanges : List<object>
+    public class PropertyChanges : ObservableCollection<object>
     {
         public PropertyChanges(string propertyName)
         {
@@ -12,12 +13,26 @@ namespace rmsoft.ChangeTracking
             if (propertyName.Trim().Length == 0)
                 throw new ArgumentException("Invalid property name.", nameof(propertyName));
 
-            PropertyName = propertyName;    
+            PropertyName = propertyName;
         }
 
         public string PropertyName { get; }
 
-        public int CurrentIndex { get; private set; } = -1;
+        private int currentIndex = -1;
+
+        public int CurrentIndex
+        {
+            get => currentIndex;
+            set
+            {
+                if (value != currentIndex)
+                {
+                    currentIndex = value;
+                    OnPropertyChanged(nameof(CurrentIndex));
+                    OnPropertyChanged(nameof(Current));
+                }
+            }
+        }
 
         public object Current => Count > 0 ? this[CurrentIndex] : null;
 
@@ -31,6 +46,12 @@ namespace rmsoft.ChangeTracking
         public void Redo()
         {
             CurrentIndex++;
+        }
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChangedEventArgs e = new PropertyChangedEventArgs(propertyName);
+            base.OnPropertyChanged(e);
         }
 
         public new void Add(object value)

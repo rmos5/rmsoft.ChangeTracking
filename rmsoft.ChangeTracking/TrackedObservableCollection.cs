@@ -7,11 +7,17 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public partial class TrackedObservableCollection<T> : ObservableCollection<T>, ITrackedCollection<T>
+    public partial class TrackedObservableCollection<T> : ObservableCollection<T>, ITrackedCollection<T>, IListChangeTracking<T>
     {
         public event EventHandler TrackerUpdated;
 
         protected IListChangeTracking<T> ChangeTracker { get; }
+
+        public INotifyListChanged<T> Item => ChangeTracker.Item;
+
+        public IEnumerable<NotifyCollectionChangedEventArgs> Changes => ChangeTracker.Changes;
+
+        public NotifyCollectionChangedEventArgs CurrentChange => ChangeTracker.CurrentChange;
 
         public virtual bool HasChanges => ChangeTracker.HasChanges;
 
@@ -121,6 +127,8 @@ namespace rmsoft.ChangeTracking
         {
             OnPropertyChanged(nameof(IsTracking));
             OnPropertyChanged(nameof(HasChanges));
+            OnPropertyChanged(nameof(CurrentChange));
+            OnPropertyChanged(nameof(Changes));
 
             ToggleTrackingCommand.RaiseCanExecuteChanged();
             UndoChangesCommand.RaiseCanExecuteChanged();
