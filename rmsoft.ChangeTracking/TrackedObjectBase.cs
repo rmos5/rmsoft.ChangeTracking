@@ -16,8 +16,15 @@ namespace rmsoft.ChangeTracking
 
         public IEnumerable<PropertyChanges> Changes => ChangeTracker.Changes;
 
+        public int ChangesCount => ChangeTracker.ChangesCount;
+
+        public virtual bool HasChanges => ChangeTracker.HasChanges;
+
         public PropertyChanges CurrentChange => ChangeTracker.CurrentChange;
 
+        public PropertyChanges NextChange => ChangeTracker.NextChange;
+
+        public PropertyChanges PreviousChange => ChangeTracker.PreviousChange;
 
         private bool isTrackingEnabled;
 
@@ -36,8 +43,6 @@ namespace rmsoft.ChangeTracking
         }
 
         public virtual bool IsTracking => ChangeTracker.IsTracking;
-
-        public virtual bool HasChanges => ChangeTracker.HasChanges;
 
         public IContextCommand ToggleTrackingCommand { get; }
 

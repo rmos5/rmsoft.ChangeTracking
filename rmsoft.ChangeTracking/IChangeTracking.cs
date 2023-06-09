@@ -6,6 +6,7 @@ namespace rmsoft.ChangeTracking
     public interface IChangeTracking
     {
         event EventHandler TrackerUpdated;
+        int ChangesCount { get; }
         bool HasChanges { get; }
         bool IsTracking { get; }
         void StartTracking();
@@ -22,5 +23,7 @@ namespace rmsoft.ChangeTracking
         TSource Item { get; }
         IEnumerable<TChange> Changes { get; }
         TChange CurrentChange { get; }
+        TChange NextChange { get; }
+        TChange PreviousChange { get; }
     }
 }
