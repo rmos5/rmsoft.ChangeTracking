@@ -54,7 +54,7 @@ namespace rmsoft.ChangeTracking
 
         public TrackedObjectBase()
         {
-            ChangeTracker = new PropertyChangeTracker(this);
+            ChangeTracker = new PropertyChangesTracker(this);
             ChangeTracker.TrackerUpdated += OnTrackerUpdated;
 
             ToggleTrackingCommand = new ToggleTrackingCommandImpl(this);

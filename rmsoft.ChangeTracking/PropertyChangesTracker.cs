@@ -10,7 +10,7 @@ namespace rmsoft.ChangeTracking
     {
     }
 
-    public class PropertyChangeTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracking
+    public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracking
     {
         protected struct PropertyValue
         {
@@ -30,12 +30,12 @@ namespace rmsoft.ChangeTracking
             }
         }
 
-        public PropertyChangeTracker(INotifyPropertyChanged item)
+        public PropertyChangesTracker(INotifyPropertyChanged item)
             : base(item)
         {
         }
 
-        ~PropertyChangeTracker()
+        ~PropertyChangesTracker()
         {
             RemoveItemEvents();
         }
