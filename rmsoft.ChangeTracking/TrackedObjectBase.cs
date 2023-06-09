@@ -4,13 +4,13 @@ using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangeTracking
+    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangesTracking
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
         public event EventHandler TrackerUpdated;
 
-        protected IPropertyChangeTracking ChangeTracker { get; }
+        protected IPropertyChangesTracking ChangeTracker { get; }
 
         public INotifyPropertyChanged Item => ChangeTracker.Item;
 

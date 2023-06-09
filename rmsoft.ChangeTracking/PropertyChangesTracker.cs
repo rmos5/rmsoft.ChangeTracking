@@ -6,11 +6,11 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public interface IPropertyChangeTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
+    public interface IPropertyChangesTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
     {
     }
 
-    public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracking
+    public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangesTracking
     {
         protected struct PropertyValue
         {
