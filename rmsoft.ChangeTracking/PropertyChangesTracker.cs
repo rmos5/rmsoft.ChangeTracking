@@ -6,11 +6,11 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
-    public interface IPropertyChangeTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
+    public interface IPropertyChangesTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
     {
     }
 
-    public class PropertyChangeTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangeTracking
+    public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangesTracking
     {
         protected struct PropertyValue
         {
@@ -30,19 +30,19 @@ namespace rmsoft.ChangeTracking
             }
         }
 
-        public PropertyChangeTracker(INotifyPropertyChanged item)
+        public PropertyChangesTracker(INotifyPropertyChanged item)
             : base(item)
         {
         }
 
-        ~PropertyChangeTracker()
+        ~PropertyChangesTracker()
         {
             RemoveItemEvents();
         }
 
         public override bool HasChanges =>
             base.HasChanges
-            && Changes.Any(o => o.CurrentIndex > 0);
+            && Changes.Any(o => o.Count > 0);
 
         protected IEnumerable<string> GetTrackedPropertyNames() => Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()).Select(o => o.Name);
 
@@ -76,23 +76,18 @@ namespace rmsoft.ChangeTracking
             Item.PropertyChanged -= Item_PropertyChanged;
         }
 
-        public bool IsChanged(string propertyName)
-        {
-            return Changes.Any(o => o.PropertyName == propertyName);
-        }
-
         public override bool CanUndo()
         {
-            return CurrentNode != null
-                && (CurrentNode.Value.CanUndo
-                || CurrentNode.Previous != null);
+            return base.CanUndo()
+                || (CurrentChange != null
+                && CurrentChange.CanUndo);
         }
 
         public override bool CanRedo()
         {
-            return CurrentNode != null
-                && (CurrentNode.Value.CanRedo
-                || CurrentNode.Next != null);
+            return base.CanRedo()
+                || (CurrentChange != null
+                && CurrentChange.CanRedo);
         }
 
         protected void ApplyChange(string name, object value)
@@ -104,41 +99,47 @@ namespace rmsoft.ChangeTracking
                 AddItemEvents();
         }
 
-        protected override LinkedListNode<PropertyChanges> ApplyUndoChange()
+        protected override int ApplyUndoChange()
         {
-            LinkedListNode<PropertyChanges> result = CurrentNode;
-            PropertyChanges change = result.Value;
+            int result = CurrentIndex;
+            PropertyChanges change = CurrentChange;
 
             if (!change.CanUndo)
             {
-                result = CurrentNode.Previous;
-                change = result?.Value;
+                result -= 1;
+                change = CurrentChange;
             }
 
-            if (result == null)
+            if (result < 0)
                 return result;
 
             change.Undo();
             ApplyChange(change.PropertyName, change.Current);
 
             if (!change.CanUndo)
-                result = CurrentNode.Previous;
+            {
+                result -= 1;
+            }
 
             return result;
         }
 
-        protected override LinkedListNode<PropertyChanges> ApplyRedoChange()
+        protected override int ApplyRedoChange()
         {
-            LinkedListNode<PropertyChanges> result = CurrentNode;
-            PropertyChanges change = result.Value;
+            if (CurrentIndex < 0)
+                CurrentIndex++;
+
+            int result = CurrentIndex;
+            PropertyChanges change = CurrentChange;
 
             if (!change.CanRedo)
             {
-                result = CurrentNode.Next;
-                change = result?.Value;
+                CurrentIndex++;
+                result = CurrentIndex;
+                change = CurrentChange;
             }
 
-            if (result == null)
+            if (result < 0)
                 return result;
 
             change.Redo();

@@ -49,7 +49,7 @@
     <Compile Include="TrackedObjectBase.cs" />
     <Compile Include="ListChangeTracker.cs" />
     <Compile Include="PropertyChangeTrackerAttribute.cs" />
-    <Compile Include="PropertyChangeTracker.cs" />
+    <Compile Include="PropertyChangesTracker.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
 
 namespace rmsoft.ChangeTracking
 {
@@ -27,10 +26,6 @@ namespace rmsoft.ChangeTracking
                 StopTracking(true);
                 return; //Reset is not supported because ObservableCollection<T> reset event args does not contain inforamtion about removed items, .Net bug
             }
-            //} else if (e.Action == NotifyCollectionChangedAction.Replace)
-            //{
-            //    return; //ObservableCollection<T>.SetItem raises Replace event, but behaves wrongly, replaced item removed from collection, .Net bug
-            //}
 
             AddChange(e);
         }
@@ -43,12 +38,6 @@ namespace rmsoft.ChangeTracking
         protected void RemoveItemEvents()
         {
             Item.CollectionChanged -= Item_CollectionChanged;
-        }
-
-        public override bool CanUndo()
-        {
-            return base.CanUndo()
-                || CurrentNode != null;
         }
 
         protected override void StartTrackingOverride()
@@ -82,10 +71,10 @@ namespace rmsoft.ChangeTracking
                 AddItemEvents();
         }
 
-        protected override LinkedListNode<NotifyCollectionChangedEventArgs> ApplyUndoChange()
+        protected override int ApplyUndoChange()
         {
-            LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode;
-            NotifyCollectionChangedEventArgs change = result.Value;
+            int result = CurrentIndex;
+            NotifyCollectionChangedEventArgs change = CurrentChange;
 
             if (IsTracking)
                 RemoveItemEvents();
@@ -93,19 +82,16 @@ namespace rmsoft.ChangeTracking
             switch (CurrentChange.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Debug.WriteLine($"Undo add:{change.NewItems[0]}", GetType().Name);
                     Item.Remove((T)change.NewItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Debug.WriteLine($"Undo remove:{change.OldItems[0]}", GetType().Name);
                     Item.Insert(change.OldStartingIndex, (T)change.OldItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0], true);
-                    if (result.Previous?.Value?.Action == NotifyCollectionChangedAction.Replace)
+                    if (CanUndo() && PreviousChange.Action == NotifyCollectionChangedAction.Replace)
                     {
-                        result = result.Previous;
-                        change = result.Value;
+                        result -= 1;
                         Item.ReplaceAt(change.OldStartingIndex, (T)change.OldItems[0], true);
                     }
                     break;
@@ -118,7 +104,7 @@ namespace rmsoft.ChangeTracking
                     break;
             }
 
-            result = result.Previous;
+            result -= 1;
 
             if (IsTracking)
                 AddItemEvents();
@@ -126,10 +112,10 @@ namespace rmsoft.ChangeTracking
             return result;
         }
 
-        protected override LinkedListNode<NotifyCollectionChangedEventArgs> ApplyRedoChange()
+        protected override int ApplyRedoChange()
         {
-            LinkedListNode<NotifyCollectionChangedEventArgs> result = CurrentNode.Next;
-            NotifyCollectionChangedEventArgs change = result.Value;
+            int result = CurrentIndex + 1;
+            NotifyCollectionChangedEventArgs change = NextChange;
 
             if (IsTracking)
                 RemoveItemEvents();
@@ -137,19 +123,16 @@ namespace rmsoft.ChangeTracking
             switch (change.Action)
             {
                 case NotifyCollectionChangedAction.Add:
-                    Debug.WriteLine($"Redo add:{change.NewItems[0]}", GetType().Name);
                     Item.Insert(change.NewStartingIndex, (T)change.NewItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Remove:
-                    Debug.WriteLine($"Redo remove:{change.OldItems[0]}", GetType().Name);
                     Item.Remove((T)change.OldItems[0], true);
                     break;
                 case NotifyCollectionChangedAction.Replace:
                     Item.ReplaceAt(change.OldStartingIndex, (T)change.NewItems[0], true);
-                    if (result.Next?.Value?.Action == NotifyCollectionChangedAction.Replace)
+                    if (CanRedo() && NextChange.Action == NotifyCollectionChangedAction.Replace)
                     {
-                        result = result.Next;
-                        change = result.Value;
+                        result += 1;
                         Item.ReplaceAt(change.OldStartingIndex, (T)change.NewItems[0], true);
                     }
                     break;

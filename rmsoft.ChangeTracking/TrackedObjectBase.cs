@@ -4,20 +4,27 @@ using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangeTracking
+    public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangesTracking
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
         public event EventHandler TrackerUpdated;
 
-        protected IPropertyChangeTracking ChangeTracker { get; }
+        protected IPropertyChangesTracking ChangeTracker { get; }
 
         public INotifyPropertyChanged Item => ChangeTracker.Item;
 
         public IEnumerable<PropertyChanges> Changes => ChangeTracker.Changes;
 
+        public int ChangesCount => ChangeTracker.ChangesCount;
+
+        public virtual bool HasChanges => ChangeTracker.HasChanges;
+
         public PropertyChanges CurrentChange => ChangeTracker.CurrentChange;
 
+        public PropertyChanges NextChange => ChangeTracker.NextChange;
+
+        public PropertyChanges PreviousChange => ChangeTracker.PreviousChange;
 
         private bool isTrackingEnabled;
 
@@ -37,8 +44,6 @@ namespace rmsoft.ChangeTracking
 
         public virtual bool IsTracking => ChangeTracker.IsTracking;
 
-        public virtual bool HasChanges => ChangeTracker.HasChanges;
-
         public IContextCommand ToggleTrackingCommand { get; }
 
         public IContextCommand UndoChangesCommand { get; }
@@ -49,7 +54,7 @@ namespace rmsoft.ChangeTracking
 
         public TrackedObjectBase()
         {
-            ChangeTracker = new PropertyChangeTracker(this);
+            ChangeTracker = new PropertyChangesTracker(this);
             ChangeTracker.TrackerUpdated += OnTrackerUpdated;
 
             ToggleTrackingCommand = new ToggleTrackingCommandImpl(this);

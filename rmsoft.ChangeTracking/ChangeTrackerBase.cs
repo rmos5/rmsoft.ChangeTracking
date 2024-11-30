@@ -12,19 +12,30 @@ namespace rmsoft.ChangeTracking
 
         public TSource Item { get; }
 
-        public virtual bool HasChanges => Changes.Any();
-
         public bool IsTracking { get; private set; }
-
-        private LinkedList<TChange> changesList = new LinkedList<TChange>();
 
         private ObservableCollection<TChange> changes = new ObservableCollection<TChange>();
 
         public IEnumerable<TChange> Changes => changes;
 
-        protected LinkedListNode<TChange> CurrentNode { get; private set; }
+        public int ChangesCount => changes.Count;
 
-        public TChange CurrentChange => CurrentNode == null ? default(TChange) : CurrentNode.Value;
+        public virtual bool HasChanges => ChangesCount > 0;
+
+        public int CurrentIndex { get; protected set; } = -1;
+
+        public TChange CurrentChange => CurrentIndex < 0 ? default(TChange) : changes[CurrentIndex];
+
+        public TChange PreviousChange => 
+            CurrentIndex > 0 
+            ? changes[CurrentIndex - 1] 
+            : default(TChange);
+
+        public TChange NextChange => 
+            CurrentIndex < ChangesCount - 1 
+            && HasChanges 
+            ? changes[CurrentIndex + 1] 
+            : default(TChange);
 
         protected ChangeTrackerBase(TSource item)
         {
@@ -37,9 +48,9 @@ namespace rmsoft.ChangeTracking
 
         protected abstract void SetOriginalValues(bool clearAfterSet);
 
-        protected abstract LinkedListNode<TChange> ApplyUndoChange();
+        protected abstract int ApplyUndoChange();
 
-        protected abstract LinkedListNode<TChange> ApplyRedoChange();
+        protected abstract int ApplyRedoChange();
 
         protected void RaiseTrackerUpdated()
         {
@@ -49,44 +60,40 @@ namespace rmsoft.ChangeTracking
 
         protected void AddChange(TChange change)
         {
+            TChange last;
             while (CanRedo())
             {
-                TChange last = changesList.Last();
-                changesList.Remove(last);
+                last = changes.Last();
                 changes.Remove(last);
             }
 
-            CurrentNode = changesList.AddLast(change);
             changes.Add(change);
+            CurrentIndex++;
             RaiseTrackerUpdated();
         }
 
         public virtual bool CanRedo()
         {
-            return CurrentNode?.Next != null;
+            return HasChanges
+                && CurrentIndex < ChangesCount - 1;
         }
 
         public virtual bool CanUndo()
         {
-            return CurrentNode?.Previous != null;
+            return HasChanges
+                && CurrentIndex >= 0;
+
         }
 
         public void Undo()
         {
-            CurrentNode = ApplyUndoChange();
-
-            if (!CanUndo())
-            {
-                changesList.Clear();
-                changes.Clear();
-            }
-               
+            CurrentIndex = ApplyUndoChange();
             RaiseTrackerUpdated();
         }
 
         public void Redo()
         {
-            CurrentNode = ApplyRedoChange();
+            CurrentIndex = ApplyRedoChange();
             RaiseTrackerUpdated();
         }
 
@@ -105,12 +112,11 @@ namespace rmsoft.ChangeTracking
             if (!IsTracking)
                 throw new InvalidOperationException("Tracking is not active.");
 
-            StopTrackingOverride(cancelChanges);
-            CurrentNode = null;
-            changesList.Clear();
-            changes.Clear();
             IsTracking = false;
-
+            StopTrackingOverride(cancelChanges);
+            changes.Clear();
+            CurrentIndex = -1;
+            
             if (cancelChanges)
                 SetOriginalValues(true);
 

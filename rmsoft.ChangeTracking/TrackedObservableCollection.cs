@@ -16,9 +16,15 @@ namespace rmsoft.ChangeTracking
 
         public IEnumerable<NotifyCollectionChangedEventArgs> Changes => ChangeTracker.Changes;
 
-        public NotifyCollectionChangedEventArgs CurrentChange => ChangeTracker.CurrentChange;
+        public int ChangesCount => ChangeTracker.ChangesCount;
 
         public virtual bool HasChanges => ChangeTracker.HasChanges;
+
+        public NotifyCollectionChangedEventArgs CurrentChange => ChangeTracker.CurrentChange;
+
+        public NotifyCollectionChangedEventArgs NextChange => ChangeTracker.NextChange;
+
+        public NotifyCollectionChangedEventArgs PreviousChange => ChangeTracker.PreviousChange;
 
         public virtual bool IsTracking => ChangeTracker.IsTracking;
 
