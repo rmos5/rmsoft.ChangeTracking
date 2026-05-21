@@ -109,13 +109,21 @@ namespace rmsoft.ChangeTracking
 
         public void StopTracking(bool cancelChanges)
         {
+            StopTracking(cancelChanges, true);
+        }
+
+        public void StopTracking(bool cancelChanges, bool clearHistory)
+        {
             if (!IsTracking)
                 throw new InvalidOperationException("Tracking is not active.");
 
             IsTracking = false;
             StopTrackingOverride(cancelChanges);
-            changes.Clear();
-            CurrentIndex = -1;
+            if (clearHistory)
+            {
+                changes.Clear();
+                CurrentIndex = -1;
+            }
             
             if (cancelChanges)
                 SetOriginalValues(true);

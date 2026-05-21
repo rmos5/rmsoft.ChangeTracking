@@ -11,6 +11,7 @@ namespace rmsoft.ChangeTracking
         bool IsTracking { get; }
         void StartTracking();
         void StopTracking(bool cancelChanges);
+        void StopTracking(bool cancelChanges, bool clearHistory);
         bool CanUndo();
         void Undo();
         bool CanRedo();
