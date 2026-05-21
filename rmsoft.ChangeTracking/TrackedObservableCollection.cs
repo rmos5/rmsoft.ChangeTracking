@@ -239,6 +239,12 @@ namespace rmsoft.ChangeTracking
             RefreshModelState();
         }
 
+        public virtual void StopTracking(bool cancelChanges, bool clearHistory)
+        {
+            ChangeTracker.StopTracking(cancelChanges, clearHistory);
+            RefreshModelState();
+        }
+
         public virtual bool CanUndo()
         {
             return ChangeTracker.CanUndo();

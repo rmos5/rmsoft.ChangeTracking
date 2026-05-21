@@ -44,23 +44,31 @@ namespace rmsoft.ChangeTracking
             base.HasChanges
             && Changes.Any(o => o.Count > 0);
 
-        protected IEnumerable<string> GetTrackedPropertyNames() => Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()).Select(o => o.Name);
+        protected IEnumerable<string> GetTrackedPropertyNames() => trackedProperties.Keys;
 
         protected IEnumerable<string> GetChangedPropertyNames() => Changes.Select(o => o.PropertyName).Distinct();
 
         private void Item_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (GetTrackedPropertyNames().Contains(e.PropertyName))
+            IEnumerable<string> changedProperties =
+                string.IsNullOrWhiteSpace(e.PropertyName)
+                    ? GetTrackedPropertyNames()
+                    : new[] { e.PropertyName };
+
+            foreach (string propertyName in changedProperties)
             {
-                PropertyChanges change = Changes.FirstOrDefault(o => o.PropertyName == e.PropertyName);
+                if (!trackedProperties.TryGetValue(propertyName, out PropertyInfo trackedProperty))
+                    continue;
+
+                PropertyChanges change = Changes.FirstOrDefault(o => o.PropertyName == propertyName);
                 bool add = change == null;
                 if (change == null)
                 {
-                    change = new PropertyChanges(e.PropertyName);
-                    change.Add(OriginalPropertyValues.First(o => o.Name == e.PropertyName).Value);
+                    change = new PropertyChanges(propertyName);
+                    change.Add(originalValues[propertyName].Value);
                 }
 
-                change.Add(Item.GetType().GetProperty(e.PropertyName).GetValue(Item));
+                change.Add(trackedProperty.GetValue(Item));
                 if (add)
                     AddChange(change);
             }
@@ -94,7 +102,7 @@ namespace rmsoft.ChangeTracking
         {
             if (IsTracking)
                 RemoveItemEvents();
-            Item.GetType().GetProperty(name).SetValue(Item, value);
+            trackedProperties[name].SetValue(Item, value);
             if (IsTracking)
                 AddItemEvents();
         }
@@ -150,6 +158,9 @@ namespace rmsoft.ChangeTracking
 
         protected IEnumerable<PropertyValue> OriginalPropertyValues { get; private set; }
 
+        private IDictionary<string, PropertyInfo> trackedProperties = new Dictionary<string, PropertyInfo>();
+        private IDictionary<string, PropertyValue> originalValues = new Dictionary<string, PropertyValue>();
+
         protected PropertyValue GetInitialChange(PropertyValue change)
         {
             return OriginalPropertyValues.First(o => o.Name == change.Name);
@@ -157,7 +168,15 @@ namespace rmsoft.ChangeTracking
 
         protected override void StartTrackingOverride()
         {
-            OriginalPropertyValues = Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()).Select(o => new PropertyValue(o.Name, o.GetValue(Item))).ToList();
+            trackedProperties = Item.GetType()
+                .GetProperties()
+                .Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any())
+                .ToDictionary(o => o.Name, o => o);
+
+            OriginalPropertyValues = trackedProperties
+                .Select(o => new PropertyValue(o.Key, o.Value.GetValue(Item)))
+                .ToList();
+            originalValues = OriginalPropertyValues.ToDictionary(o => o.Name, o => o);
             AddItemEvents();
         }
 
@@ -173,11 +192,14 @@ namespace rmsoft.ChangeTracking
 
             foreach (PropertyValue obj in OriginalPropertyValues)
             {
-                Item.GetType().GetProperty(obj.Name).SetValue(Item, obj.Value);
+                trackedProperties[obj.Name].SetValue(Item, obj.Value);
             }
 
             if (clearAfterSet)
+            {
                 OriginalPropertyValues = null;
+                originalValues = new Dictionary<string, PropertyValue>();
+            }
 
             if (IsTracking)
                 AddItemEvents();
