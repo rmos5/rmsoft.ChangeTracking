@@ -4,6 +4,10 @@ using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
+    /// <summary>
+    /// Convenience base class that wires an object instance to <see cref="PropertyChangesTracker"/>
+    /// and exposes command-friendly undo/redo tracking APIs.
+    /// </summary>
     public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangesTracking
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -78,11 +82,13 @@ namespace rmsoft.ChangeTracking
 
         public virtual void RefreshModelState()
         {
+            // Keep binding targets in sync whenever tracker state changes.
             OnPropertyChanged(nameof(IsTracking));
             OnPropertyChanged(nameof(HasChanges));
             OnPropertyChanged(nameof(CurrentChange));
             OnPropertyChanged(nameof(Changes));
 
+            // Commands depend on tracker state, so reevaluate their availability now.
             ToggleTrackingCommand.RaiseCanExecuteChanged();
             UndoChangesCommand.RaiseCanExecuteChanged();
             RedoChangesCommand.RaiseCanExecuteChanged();

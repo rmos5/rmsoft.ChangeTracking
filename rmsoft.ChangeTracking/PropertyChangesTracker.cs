@@ -6,12 +6,21 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
+    /// <summary>
+    /// Tracks property-level changes for objects that raise <see cref="INotifyPropertyChanged"/>.
+    /// </summary>
     public interface IPropertyChangesTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
     {
     }
 
+    /// <summary>
+    /// Maintains undo/redo history for all properties marked with <see cref="PropertyChangeTrackerAttribute"/>.
+    /// </summary>
     public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangesTracking
     {
+        /// <summary>
+        /// Snapshot container used to cache an original property name/value pair.
+        /// </summary>
         protected struct PropertyValue
         {
             public string Name { get; }
@@ -50,6 +59,7 @@ namespace rmsoft.ChangeTracking
 
         private void Item_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            // Empty property name means "whole object changed", so inspect all tracked members.
             IEnumerable<string> changedProperties =
                 string.IsNullOrWhiteSpace(e.PropertyName)
                     ? GetTrackedPropertyNames()
@@ -64,10 +74,12 @@ namespace rmsoft.ChangeTracking
                 bool add = change == null;
                 if (change == null)
                 {
+                    // First change entry begins with the original baseline value.
                     change = new PropertyChanges(propertyName);
                     change.Add(originalValues[propertyName].Value);
                 }
 
+                // Append latest value to support multi-step undo/redo for same property.
                 change.Add(trackedProperty.GetValue(Item));
                 if (add)
                     AddChange(change);
@@ -100,6 +112,7 @@ namespace rmsoft.ChangeTracking
 
         protected void ApplyChange(string name, object value)
         {
+            // Temporarily detach to prevent replay operations from generating new history entries.
             if (IsTracking)
                 RemoveItemEvents();
             trackedProperties[name].SetValue(Item, value);

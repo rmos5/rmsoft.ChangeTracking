@@ -5,6 +5,11 @@ using System.Linq;
 
 namespace rmsoft.ChangeTracking
 {
+    /// <summary>
+    /// Base implementation for tracking a sequence of changes on a source object.
+    /// </summary>
+    /// <typeparam name="TSource">Type of object being tracked.</typeparam>
+    /// <typeparam name="TChange">Type that represents a single change unit.</typeparam>
     public abstract class ChangeTrackerBase<TSource, TChange> : IChangeTracking<TSource, TChange>
         where TSource : class
     {
@@ -58,11 +63,15 @@ namespace rmsoft.ChangeTracking
             h?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Adds a change to the timeline and drops redo history when branching.
+        /// </summary>
         protected void AddChange(TChange change)
         {
             TChange last;
             while (CanRedo())
             {
+                // User produced a new change after undo, so future redo states are invalid.
                 last = changes.Last();
                 changes.Remove(last);
             }
@@ -87,12 +96,14 @@ namespace rmsoft.ChangeTracking
 
         public void Undo()
         {
+            // Delegate concrete undo logic to child class and sync current pointer.
             CurrentIndex = ApplyUndoChange();
             RaiseTrackerUpdated();
         }
 
         public void Redo()
         {
+            // Delegate concrete redo logic to child class and sync current pointer.
             CurrentIndex = ApplyRedoChange();
             RaiseTrackerUpdated();
         }
