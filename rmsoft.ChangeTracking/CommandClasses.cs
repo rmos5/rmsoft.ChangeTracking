@@ -18,19 +18,18 @@ namespace rmsoft.ChangeTracking
             Context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
 
-        public abstract void Execute(object parameter);
+        public abstract void Execute(object? parameter);
 
-        public virtual bool CanExecute(object parameter)
+        public virtual bool CanExecute(object? parameter)
         {
             return false;
         }
 
         public void RaiseCanExecuteChanged()
         {
-            EventHandler h = CanExecuteChanged;
-            h?.Invoke(this, EventArgs.Empty);
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -41,12 +40,12 @@ namespace rmsoft.ChangeTracking
         {
         }
 
-        public override bool CanExecute(object parameter)
+        public override bool CanExecute(object? parameter)
         {
             return Context.IsTrackingEnabled;
         }
 
-        public override void Execute(object parameter)
+        public override void Execute(object? parameter)
         {
             if (Context.IsTracking)
                 Context.StopTracking(true);
@@ -62,7 +61,7 @@ namespace rmsoft.ChangeTracking
         {
         }
 
-        public override bool CanExecute(object parameter)
+        public override bool CanExecute(object? parameter)
         {
             return Context.IsTracking;
         }
@@ -75,13 +74,13 @@ namespace rmsoft.ChangeTracking
         {
         }
 
-        public override bool CanExecute(object parameter)
+        public override bool CanExecute(object? parameter)
         {
             return base.CanExecute(parameter)
                 && Context.CanUndo();
         }
 
-        public override void Execute(object parameter)
+        public override void Execute(object? parameter)
         {
             Context.Undo();
         }
@@ -94,13 +93,13 @@ namespace rmsoft.ChangeTracking
         {
         }
 
-        public override bool CanExecute(object parameter)
+        public override bool CanExecute(object? parameter)
         {
             return base.CanExecute(parameter)
                 && Context.CanRedo();
         }
 
-        public override void Execute(object parameter)
+        public override void Execute(object? parameter)
         {
             Context.Redo();
         }
@@ -113,13 +112,13 @@ namespace rmsoft.ChangeTracking
         {
         }
 
-        public override bool CanExecute(object parameter)
+        public override bool CanExecute(object? parameter)
         {
             return base.CanExecute(parameter)
                 && Context.CanUndo();
         }
 
-        public override void Execute(object parameter)
+        public override void Execute(object? parameter)
         {
             Context.StopTracking(false);
         }

@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 
 namespace rmsoft.ChangeTracking.TestApp
 {
@@ -29,18 +28,15 @@ namespace rmsoft.ChangeTracking.TestApp
             return !IsTracking;
         }
 
-        private readonly Random _random = new Random();
+        private readonly Random random = new Random();
+
         private void ExecuteGetDataCommand(object? parameter)
         {
-            this.Clear();
-            int num = _random.Next(5, 20);
-            int num1 = 1;
-            NamedObject obj;
-            for (int i = 0; i < num; i++)
+            Clear();
+            int count = random.Next(5, 20);
+            for (int i = 0; i < count; i++)
             {
-                obj = CreateNewData(i);
-                AddData(obj, false);
-                num1++;
+                AddData(CreateNewData(i), false);
             }
 
             SelectedItem = this.FirstOrDefault();
@@ -52,30 +48,30 @@ namespace rmsoft.ChangeTracking.TestApp
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return Context.CanExecuteAddNewDataCommand(parameter);
             }
 
-            public override void Execute(object parameter)
+            public override void Execute(object? parameter)
             {
                 Context.ExecuteAddNewDataCommand(parameter);
             }
         }
 
-        private bool CanExecuteAddNewDataCommand(object parameter)
+        private bool CanExecuteAddNewDataCommand(object? parameter)
         {
-            return this.IsTracking;
+            return IsTracking;
         }
 
-        static int Number = 1000;
-        private void ExecuteAddNewDataCommand(object parameter)
+        private static int Number = 1000;
+
+        private void ExecuteAddNewDataCommand(object? parameter)
         {
             if (Count == 0)
                 Number = 1000;
 
-            NamedObject obj = CreateNewData(Number++);
-            AddData(obj, true);
+            AddData(CreateNewData(Number++), true);
         }
     }
 }

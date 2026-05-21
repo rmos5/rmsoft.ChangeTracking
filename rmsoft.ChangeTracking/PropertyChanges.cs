@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
 namespace rmsoft.ChangeTracking
 {
-    public class PropertyChanges : ObservableCollection<object>
+    public class PropertyChanges : ObservableCollection<object?>
     {
         public PropertyChanges(string propertyName)
         {
@@ -34,18 +34,25 @@ namespace rmsoft.ChangeTracking
             }
         }
 
-        public object Current => Count > 0 ? this[CurrentIndex] : null;
+        public object? Current =>
+            CurrentIndex >= 0 && CurrentIndex < Count
+                ? this[CurrentIndex]
+                : null;
 
         public bool CanUndo => CurrentIndex > 0;
+
         public void Undo()
         {
-            CurrentIndex--;
+            if (CanUndo)
+                CurrentIndex--;
         }
 
         public bool CanRedo => Count > 0 && CurrentIndex < Count - 1;
+
         public void Redo()
         {
-            CurrentIndex++;
+            if (CanRedo)
+                CurrentIndex++;
         }
 
         protected virtual void OnPropertyChanged(string propertyName)
@@ -54,10 +61,10 @@ namespace rmsoft.ChangeTracking
             base.OnPropertyChanged(e);
         }
 
-        public new void Add(object value)
+        public new void Add(object? value)
         {
             base.Add(value);
-            CurrentIndex++;
+            CurrentIndex = Count - 1;
         }
     }
 }

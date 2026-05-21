@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -6,9 +6,11 @@ namespace rmsoft.ChangeTracking
 {
     public abstract partial class TrackedObjectBase : INotifyPropertyChanged, ITrackedObject, IPropertyChangesTracking
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        private bool disposed;
 
-        public event EventHandler TrackerUpdated;
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public event EventHandler? TrackerUpdated;
 
         protected IPropertyChangesTracking ChangeTracker { get; }
 
@@ -20,11 +22,11 @@ namespace rmsoft.ChangeTracking
 
         public virtual bool HasChanges => ChangeTracker.HasChanges;
 
-        public PropertyChanges CurrentChange => ChangeTracker.CurrentChange;
+        public PropertyChanges? CurrentChange => ChangeTracker.CurrentChange;
 
-        public PropertyChanges NextChange => ChangeTracker.NextChange;
+        public PropertyChanges? NextChange => ChangeTracker.NextChange;
 
-        public PropertyChanges PreviousChange => ChangeTracker.PreviousChange;
+        public PropertyChanges? PreviousChange => ChangeTracker.PreviousChange;
 
         private bool isTrackingEnabled;
 
@@ -65,15 +67,13 @@ namespace rmsoft.ChangeTracking
 
         protected virtual void OnPropertyChanged(string propertyName)
         {
-            PropertyChangedEventHandler h = PropertyChanged;
-            h?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        protected virtual void OnTrackerUpdated(object sender, EventArgs e)
+        protected virtual void OnTrackerUpdated(object? sender, EventArgs e)
         {
             RefreshModelState();
-            EventHandler h = TrackerUpdated;
-            h?.Invoke(this, e);
+            TrackerUpdated?.Invoke(this, e);
         }
 
         public virtual void RefreshModelState()
@@ -91,6 +91,8 @@ namespace rmsoft.ChangeTracking
 
         public virtual void StartTracking()
         {
+            ThrowIfDisposed();
+
             if (!IsTrackingEnabled)
                 throw new InvalidOperationException("Object tracking is not enabled.");
 
@@ -100,7 +102,14 @@ namespace rmsoft.ChangeTracking
 
         public virtual void StopTracking(bool cancelChanges)
         {
-            ChangeTracker.StopTracking(cancelChanges);
+            StopTracking(cancelChanges, true);
+        }
+
+        public virtual void StopTracking(bool cancelChanges, bool clearHistory)
+        {
+            ThrowIfDisposed();
+
+            ChangeTracker.StopTracking(cancelChanges, clearHistory);
             RefreshModelState();
         }
 
@@ -124,6 +133,22 @@ namespace rmsoft.ChangeTracking
         {
             ChangeTracker.Redo();
             RefreshModelState();
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+
+            ChangeTracker.TrackerUpdated -= OnTrackerUpdated;
+            ChangeTracker.Dispose();
+            disposed = true;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+                throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

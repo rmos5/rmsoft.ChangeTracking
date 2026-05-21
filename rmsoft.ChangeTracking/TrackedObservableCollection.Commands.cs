@@ -1,6 +1,3 @@
-﻿using System;
-using System.ComponentModel;
-
 namespace rmsoft.ChangeTracking
 {
     public partial class TrackedObservableCollection<T>
@@ -11,13 +8,13 @@ namespace rmsoft.ChangeTracking
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return Context.CanExecuteCollectionModifyCommand(parameter);
             }
         }
 
-        protected virtual bool CanExecuteCollectionModifyCommand(object parameter)
+        protected virtual bool CanExecuteCollectionModifyCommand(object? parameter)
         {
             return IsTracking;
         }
@@ -29,28 +26,28 @@ namespace rmsoft.ChangeTracking
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return base.CanExecute(parameter)
                     && Context.CanExecuteRemoveItemCommand(parameter);
-                
             }
 
-            public override void Execute(object parameter)
+            public override void Execute(object? parameter)
             {
                 Context.ExecuteRemoveItemCommand(parameter);
             }
         }
 
-        protected virtual bool CanExecuteRemoveItemCommand(object parameter)
+        protected virtual bool CanExecuteRemoveItemCommand(object? parameter)
         {
             return Count > 0
                    && HasSelectedItem;
         }
 
-        protected virtual void ExecuteRemoveItemCommand(object parameter)
+        protected virtual void ExecuteRemoveItemCommand(object? parameter)
         {
-            Remove(SelectedItem, true);
+            if (SelectedItem is T selectedItem)
+                Remove(selectedItem, true);
         }
 
         public class MoveItemCommandImpl : TrackedCollectionCommandBase
@@ -60,42 +57,36 @@ namespace rmsoft.ChangeTracking
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return base.CanExecute(parameter)
                     && Context.CanExecuteMoveItemCommand(parameter);
-
             }
 
-            public override void Execute(object parameter)
+            public override void Execute(object? parameter)
             {
                 Context.ExecuteMoveItemCommand(parameter);
             }
         }
 
-        protected virtual bool CanExecuteMoveItemCommand(object parameter)
+        protected virtual bool CanExecuteMoveItemCommand(object? parameter)
         {
-            int index = -1;
-            if (parameter is string s)
-                index = int.Parse(s);
-            else if (parameter is int i)
-                index = i;
-
-            return Count > 0
+            return TryGetIndex(parameter, out int index)
+                && index >= 0
+                && index < Count
+                && Count > 0
                 && HasSelectedItem
-                && IndexOf(SelectedItem) != index;
+                && IndexOf(SelectedItem!) != index;
         }
 
-        protected virtual void ExecuteMoveItemCommand(object parameter)
+        protected virtual void ExecuteMoveItemCommand(object? parameter)
         {
-            int index = -1;
-            if (parameter is string s)
-                index = int.Parse(s);
-            else if (parameter is int i)
-                index = i;
+            if (!TryGetIndex(parameter, out int index) || SelectedItem is not T selectedItem)
+                return;
 
-            int idx = IndexOf(SelectedItem);
-            Move(idx, index, true);
+            int idx = IndexOf(selectedItem);
+            if (idx >= 0 && index >= 0 && index < Count)
+                Move(idx, index, true);
         }
 
         public class ReplaceItemCommandImpl : TrackedCollectionCommandBase
@@ -105,41 +96,34 @@ namespace rmsoft.ChangeTracking
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return base.CanExecute(parameter)
                     && Context.CanExecuteReplaceItemCommand(parameter);
-
             }
 
-            public override void Execute(object parameter)
+            public override void Execute(object? parameter)
             {
                 Context.ExecuteReplaceItemCommand(parameter);
             }
         }
 
-        protected virtual bool CanExecuteReplaceItemCommand(object parameter)
+        protected virtual bool CanExecuteReplaceItemCommand(object? parameter)
         {
-            int index = -1;
-            if (parameter is string s)
-                index = int.Parse(s);
-            else if (parameter is int i)
-                index = i;
-
-            return Count > 0
+            return TryGetIndex(parameter, out int index)
+                && index >= 0
+                && index < Count
+                && Count > 0
                 && HasSelectedItem
-                && IndexOf(SelectedItem) != index;
+                && IndexOf(SelectedItem!) != index;
         }
 
-        protected virtual void ExecuteReplaceItemCommand(object parameter)
+        protected virtual void ExecuteReplaceItemCommand(object? parameter)
         {
-            int index = -1;
-            if (parameter is string s)
-                index = int.Parse(s);
-            else if (parameter is int i)
-                index = i;
+            if (!TryGetIndex(parameter, out int index) || SelectedItem is not T selectedItem)
+                return;
 
-            ReplaceAt(index, SelectedItem, true);
+            ReplaceAt(index, selectedItem, true);
         }
 
         public class ClearItemsCommandImpl : TrackedCollectionCommandBase
@@ -149,26 +133,41 @@ namespace rmsoft.ChangeTracking
             {
             }
 
-            public override bool CanExecute(object parameter)
+            public override bool CanExecute(object? parameter)
             {
                 return base.CanExecute(parameter)
                     && Context.CanExecuteClearItemsCommand(parameter);
             }
 
-            public override void Execute(object parameter)
+            public override void Execute(object? parameter)
             {
                 Context.ExecuteClearItemsCommand(parameter);
             }
         }
 
-        protected virtual bool CanExecuteClearItemsCommand(object parameter)
+        protected virtual bool CanExecuteClearItemsCommand(object? parameter)
         {
             return Count > 0;
         }
 
-        private void ExecuteClearItemsCommand(object parameter)
+        private void ExecuteClearItemsCommand(object? parameter)
         {
             Clear();
+        }
+
+        private static bool TryGetIndex(object? parameter, out int index)
+        {
+            switch (parameter)
+            {
+                case int i:
+                    index = i;
+                    return true;
+                case string s:
+                    return int.TryParse(s, out index);
+                default:
+                    index = -1;
+                    return false;
+            }
         }
     }
 }

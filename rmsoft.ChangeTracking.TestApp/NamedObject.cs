@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace rmsoft.ChangeTracking.TestApp
 {
-    public partial class NamedObject : TrackedObjectBase 
+    public partial class NamedObject : TrackedObjectBase
     {
         private string? name;
 
@@ -16,10 +10,9 @@ namespace rmsoft.ChangeTracking.TestApp
             get => name;
             set
             {
-                if (name == null
-                    && value == null
-                    || name == value)
+                if (name == value)
                     return;
+
                 name = value;
                 OnPropertyChanged(nameof(Name));
             }
@@ -33,10 +26,9 @@ namespace rmsoft.ChangeTracking.TestApp
             get => description;
             set
             {
-                if (description == null
-                    && value == null
-                    || description == value)
+                if (description == value)
                     return;
+
                 description = value;
                 OnPropertyChanged(nameof(Description));
             }
@@ -54,7 +46,7 @@ namespace rmsoft.ChangeTracking.TestApp
 
         public override string ToString()
         {
-            return Name;
+            return Name ?? string.Empty;
         }
     }
 }

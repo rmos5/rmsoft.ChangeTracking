@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -8,7 +8,10 @@ namespace rmsoft.ChangeTracking
 {
     public partial class TrackedObservableCollection<T> : ObservableCollection<T>, ITrackedCollection<T>, IListChangeTracking<T>
     {
-        public event EventHandler TrackerUpdated;
+        private bool disposed;
+        private T? selectedItem;
+
+        public event EventHandler? TrackerUpdated;
 
         protected IListChangeTracking<T> ChangeTracker { get; }
 
@@ -20,11 +23,11 @@ namespace rmsoft.ChangeTracking
 
         public virtual bool HasChanges => ChangeTracker.HasChanges;
 
-        public NotifyCollectionChangedEventArgs CurrentChange => ChangeTracker.CurrentChange;
+        public NotifyCollectionChangedEventArgs? CurrentChange => ChangeTracker.CurrentChange;
 
-        public NotifyCollectionChangedEventArgs NextChange => ChangeTracker.NextChange;
+        public NotifyCollectionChangedEventArgs? NextChange => ChangeTracker.NextChange;
 
-        public NotifyCollectionChangedEventArgs PreviousChange => ChangeTracker.PreviousChange;
+        public NotifyCollectionChangedEventArgs? PreviousChange => ChangeTracker.PreviousChange;
 
         public virtual bool IsTracking => ChangeTracker.IsTracking;
 
@@ -44,14 +47,12 @@ namespace rmsoft.ChangeTracking
             }
         }
 
-        private T selectedItem;
-
-        public T SelectedItem
+        public T? SelectedItem
         {
             get => selectedItem;
             set
             {
-                if (selectedItem?.Equals(value) != true)
+                if (!EqualityComparer<T?>.Default.Equals(selectedItem, value))
                 {
                     selectedItem = value;
                     OnPropertyChanged(nameof(SelectedItem));
@@ -98,19 +99,20 @@ namespace rmsoft.ChangeTracking
             ClearItemsCommand = new ClearItemsCommandImpl(this);
         }
 
-        protected TrackedObservableCollection(IEnumerable<T> collection) : base(collection)
+        protected TrackedObservableCollection(IEnumerable<T> collection) : this()
+        {
+            foreach (T item in collection)
+                Add(item);
+        }
+
+        protected TrackedObservableCollection(IList<T> list) : this((IEnumerable<T>)list)
         {
         }
 
-        protected TrackedObservableCollection(IList<T> list) : base(list)
-        {
-        }
-
-        protected virtual void OnTrackerUpdated(object sender, EventArgs e)
+        protected virtual void OnTrackerUpdated(object? sender, EventArgs e)
         {
             RefreshModelState();
-            EventHandler h = TrackerUpdated;
-            h?.Invoke(this, e);
+            TrackerUpdated?.Invoke(this, e);
         }
 
         protected virtual void OnPropertyChanged(string propertyName)
@@ -154,7 +156,7 @@ namespace rmsoft.ChangeTracking
 
         public void Insert(int index, T item, bool select)
         {
-            this.InsertItem(index, item);
+            InsertItem(index, item);
             if (select)
                 SelectedItem = item;
         }
@@ -168,12 +170,12 @@ namespace rmsoft.ChangeTracking
         public void Remove(T item, bool select)
         {
             int idx = IndexOf(item);
-            this.Remove(item);
+            Remove(item);
 
             if (select)
             {
                 if (Count == 0)
-                    SelectedItem = default(T);
+                    SelectedItem = default;
                 else
                 {
                     idx--;
@@ -204,13 +206,10 @@ namespace rmsoft.ChangeTracking
 
         public void ReplaceAt(int index, T item, bool select)
         {
-            int index1 = IndexOf(item);
-            if (index1 == index)
-                return;
+            if (index < 0 || index >= Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
 
-            T item1 = this[index];
             base.SetItem(index, item);
-            base.SetItem(index1, item1);
 
             if (select)
                 SelectedItem = item;
@@ -221,11 +220,14 @@ namespace rmsoft.ChangeTracking
         protected override void ClearItems()
         {
             base.ClearItems();
+            SelectedItem = default;
             RefreshModelState();
         }
 
         public virtual void StartTracking()
         {
+            ThrowIfDisposed();
+
             if (!IsTrackingEnabled)
                 throw new InvalidOperationException("Object tracking is not enabled.");
 
@@ -235,7 +237,14 @@ namespace rmsoft.ChangeTracking
 
         public virtual void StopTracking(bool cancelChanges)
         {
-            ChangeTracker.StopTracking(cancelChanges);
+            StopTracking(cancelChanges, true);
+        }
+
+        public virtual void StopTracking(bool cancelChanges, bool clearHistory)
+        {
+            ThrowIfDisposed();
+
+            ChangeTracker.StopTracking(cancelChanges, clearHistory);
             RefreshModelState();
         }
 
@@ -259,6 +268,22 @@ namespace rmsoft.ChangeTracking
         {
             ChangeTracker.Redo();
             RefreshModelState();
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+
+            ChangeTracker.TrackerUpdated -= OnTrackerUpdated;
+            ChangeTracker.Dispose();
+            disposed = true;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+                throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

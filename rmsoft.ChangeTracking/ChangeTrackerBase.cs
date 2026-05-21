@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -8,13 +8,14 @@ namespace rmsoft.ChangeTracking
     public abstract class ChangeTrackerBase<TSource, TChange> : IChangeTracking<TSource, TChange>
         where TSource : class
     {
-        public event EventHandler TrackerUpdated;
+        private readonly ObservableCollection<TChange> changes = new ObservableCollection<TChange>();
+        private bool disposed;
+
+        public event EventHandler? TrackerUpdated;
 
         public TSource Item { get; }
 
         public bool IsTracking { get; private set; }
-
-        private ObservableCollection<TChange> changes = new ObservableCollection<TChange>();
 
         public IEnumerable<TChange> Changes => changes;
 
@@ -24,22 +25,22 @@ namespace rmsoft.ChangeTracking
 
         public int CurrentIndex { get; protected set; } = -1;
 
-        public TChange CurrentChange => CurrentIndex < 0 ? default(TChange) : changes[CurrentIndex];
+        public TChange? CurrentChange => GetChange(CurrentIndex);
 
-        public TChange PreviousChange => 
-            CurrentIndex > 0 
-            ? changes[CurrentIndex - 1] 
-            : default(TChange);
+        public TChange? PreviousChange => GetChange(CurrentIndex - 1);
 
-        public TChange NextChange => 
-            CurrentIndex < ChangesCount - 1 
-            && HasChanges 
-            ? changes[CurrentIndex + 1] 
-            : default(TChange);
+        public TChange? NextChange => GetChange(CurrentIndex + 1);
 
         protected ChangeTrackerBase(TSource item)
         {
             Item = item ?? throw new ArgumentNullException(nameof(item));
+        }
+
+        protected TChange? GetChange(int index)
+        {
+            return index >= 0 && index < changes.Count
+                ? changes[index]
+                : default;
         }
 
         protected abstract void StartTrackingOverride();
@@ -54,17 +55,14 @@ namespace rmsoft.ChangeTracking
 
         protected void RaiseTrackerUpdated()
         {
-            EventHandler h = TrackerUpdated;
-            h?.Invoke(this, EventArgs.Empty);
+            TrackerUpdated?.Invoke(this, EventArgs.Empty);
         }
 
         protected void AddChange(TChange change)
         {
-            TChange last;
             while (CanRedo())
             {
-                last = changes.Last();
-                changes.Remove(last);
+                changes.Remove(changes.Last());
             }
 
             changes.Add(change);
@@ -82,23 +80,30 @@ namespace rmsoft.ChangeTracking
         {
             return HasChanges
                 && CurrentIndex >= 0;
-
         }
 
         public void Undo()
         {
+            if (!CanUndo())
+                return;
+
             CurrentIndex = ApplyUndoChange();
             RaiseTrackerUpdated();
         }
 
         public void Redo()
         {
+            if (!CanRedo())
+                return;
+
             CurrentIndex = ApplyRedoChange();
             RaiseTrackerUpdated();
         }
 
         public void StartTracking()
         {
+            ThrowIfDisposed();
+
             if (IsTracking)
                 throw new InvalidOperationException("Tracking is already active.");
 
@@ -109,18 +114,50 @@ namespace rmsoft.ChangeTracking
 
         public void StopTracking(bool cancelChanges)
         {
+            StopTracking(cancelChanges, true);
+        }
+
+        public void StopTracking(bool cancelChanges, bool clearHistory)
+        {
+            ThrowIfDisposed();
+
             if (!IsTracking)
                 throw new InvalidOperationException("Tracking is not active.");
 
             IsTracking = false;
             StopTrackingOverride(cancelChanges);
-            changes.Clear();
-            CurrentIndex = -1;
-            
+
             if (cancelChanges)
-                SetOriginalValues(true);
+                SetOriginalValues(clearHistory);
+
+            if (clearHistory)
+            {
+                changes.Clear();
+                CurrentIndex = -1;
+            }
 
             RaiseTrackerUpdated();
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+
+            if (IsTracking)
+            {
+                IsTracking = false;
+                StopTrackingOverride(false);
+            }
+
+            disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+                throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }
