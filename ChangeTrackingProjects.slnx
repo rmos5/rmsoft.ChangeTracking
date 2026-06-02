@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="rmsoft.ChangeTracking.TestApp/rmsoft.ChangeTracking.TestApp.csproj" />
+  <Project Path="rmsoft.ChangeTracking.Tests/rmsoft.ChangeTracking.Tests.csproj" />
+  <Project Path="rmsoft.ChangeTracking/rmsoft.ChangeTracking.csproj" />
+</Solution>

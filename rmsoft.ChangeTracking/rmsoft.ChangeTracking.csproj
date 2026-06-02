@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net462;netstandard2.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <LangVersion>12.0</LangVersion>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <AssemblyName>rmsoft.ChangeTracking</AssemblyName>
@@ -11,7 +11,7 @@
     <Authors>raivo.mosona@gmail.com</Authors>
     <Company>rmsoft</Company>
     <Product>rmsoft.ChangeTracking</Product>
-    <Copyright>©2019-2026 rmsoft</Copyright>
+    <Copyright>Copyright (c) 2019-2026 rmsoft</Copyright>
     <PackageId>rmsoft.ChangeTracking</PackageId>
     <PackageVersion>1.0.0</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

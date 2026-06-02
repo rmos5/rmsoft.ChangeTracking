@@ -42,7 +42,7 @@ namespace rmsoft.ChangeTracking
 
         private void TrackPropertyChange(string propertyName)
         {
-            if (!trackedProperties.TryGetValue(propertyName, out PropertyInfo property))
+            if (!trackedProperties.TryGetValue(propertyName, out PropertyInfo? property) || property == null)
                 return;
 
             if (originalPropertyValues == null)
@@ -85,7 +85,7 @@ namespace rmsoft.ChangeTracking
 
         protected void ApplyChange(string name, object? value)
         {
-            if (!trackedProperties.TryGetValue(name, out PropertyInfo property))
+            if (!trackedProperties.TryGetValue(name, out PropertyInfo? property) || property == null)
                 throw new InvalidOperationException($"Tracked property '{name}' was not found.");
 
             if (IsTracking)
@@ -174,7 +174,7 @@ namespace rmsoft.ChangeTracking
 
             foreach (KeyValuePair<string, object?> originalValue in originalPropertyValues)
             {
-                if (trackedProperties.TryGetValue(originalValue.Key, out PropertyInfo property))
+                if (trackedProperties.TryGetValue(originalValue.Key, out PropertyInfo? property) && property != null)
                     property.SetValue(Item, originalValue.Value);
             }
 
