@@ -1,0 +1,43 @@
+name: Publish NuGet package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore ChangeTrackingProjects.slnx
+
+      - name: Test
+        run: dotnet test ChangeTrackingProjects.slnx --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack rmsoft.ChangeTracking/rmsoft.ChangeTracking.csproj --configuration Release --no-restore --output artifacts/package
+
+      - name: Publish to GitHub Packages
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts/package/*.nupkg | ForEach-Object {
+            dotnet nuget push $_.FullName `
+              --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" `
+              --api-key "${{ secrets.GITHUB_TOKEN }}" `
+              --skip-duplicate
+          }
