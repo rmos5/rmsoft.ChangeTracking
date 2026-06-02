@@ -64,11 +64,11 @@
 
                         <ListBox Grid.Row="1" ItemsSource="{Binding Changes}" SelectedItem="{Binding CurrentChange, Mode=OneWay}">
                             <ListBox.Resources>
-                                <converters:NotifyPropertyChangedEventArgsConverter x:Key="notifyPropertyChangedEventArgsConverter1"/>
+                                <converters:NotifyCollectionChangedEventArgsConverter x:Key="notifyCollectionChangedEventArgsConverter1"/>
                             </ListBox.Resources>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource notifyPropertyChangedEventArgsConverter1}}"/>
+                                    <TextBlock Text="{Binding Converter={StaticResource notifyCollectionChangedEventArgsConverter1}}"/>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -130,8 +130,8 @@
                                     </Style>
                                 </StackPanel.Resources>
 
-                                <TextBox Text="{Binding Name, Mode=TwoWay}"/>
-                                <TextBox Text="{Binding Description, Mode=TwoWay}"/>
+                                <TextBox Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBox Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                             </StackPanel>
 
