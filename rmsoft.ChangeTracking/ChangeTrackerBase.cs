@@ -113,14 +113,70 @@ namespace rmsoft.ChangeTracking
         /// <param name="change">The change to add.</param>
         protected void AddChange(TChange change)
         {
-            while (CanRedo())
-            {
-                changes.Remove(changes.Last());
-            }
+            ClearRedoChanges();
 
             changes.Add(change);
             CurrentIndex++;
             RaiseTrackerUpdated();
+        }
+
+        /// <summary>
+        /// Clears all tracked changes and resets the history position.
+        /// </summary>
+        protected void ClearChanges()
+        {
+            if (changes.Count == 0 && CurrentIndex == -1)
+                return;
+
+            changes.Clear();
+            CurrentIndex = -1;
+            RaiseTrackerUpdated();
+        }
+
+        /// <summary>
+        /// Removes all redo changes after <see cref="CurrentIndex" />.
+        /// </summary>
+        protected void ClearRedoChanges()
+        {
+            while (CurrentIndex < changes.Count - 1)
+            {
+                changes.Remove(changes.Last());
+            }
+        }
+
+        /// <summary>
+        /// Removes changes that match a predicate and adjusts the history position.
+        /// </summary>
+        /// <param name="match">The predicate used to identify changes to remove.</param>
+        /// <returns>The number of removed changes.</returns>
+        protected int RemoveChanges(Predicate<TChange> match)
+        {
+            int removedCount = 0;
+            int removedAtOrBeforeCurrent = 0;
+
+            for (int i = changes.Count - 1; i >= 0; i--)
+            {
+                if (!match(changes[i]))
+                    continue;
+
+                changes.RemoveAt(i);
+                removedCount++;
+
+                if (i <= CurrentIndex)
+                    removedAtOrBeforeCurrent++;
+            }
+
+            if (removedCount == 0)
+                return 0;
+
+            CurrentIndex -= removedAtOrBeforeCurrent;
+            if (CurrentIndex >= changes.Count)
+                CurrentIndex = changes.Count - 1;
+            if (CurrentIndex < -1)
+                CurrentIndex = -1;
+
+            RaiseTrackerUpdated();
+            return removedCount;
         }
 
         /// <inheritdoc />

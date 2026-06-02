@@ -97,6 +97,43 @@ public class ChangeTrackingTests
         Assert.Equal("First", item.Name);
     }
 
+    [Fact]
+    public void TrackedObjectClearsChangesWhenPropertyReturnsToOriginalValue()
+    {
+        using TestTrackedObject item = new TestTrackedObject { IsTrackingEnabled = true, Name = "Original" };
+
+        item.StartTracking();
+        item.Name = "Updated";
+        Assert.True(item.HasChanges);
+        Assert.Equal(1, item.ChangesCount);
+
+        item.Name = "Original";
+
+        Assert.False(item.HasChanges);
+        Assert.Equal(0, item.ChangesCount);
+        Assert.False(item.CanUndo());
+    }
+
+    [Fact]
+    public void TrackedObjectKeepsOtherChangesWhenOnePropertyReturnsToOriginalValue()
+    {
+        using TestTrackedObject item = new TestTrackedObject
+        {
+            IsTrackingEnabled = true,
+            Name = "Original",
+            Description = "First"
+        };
+
+        item.StartTracking();
+        item.Name = "Updated";
+        item.Description = "Second";
+        item.Name = "Original";
+
+        Assert.True(item.HasChanges);
+        Assert.Equal(1, item.ChangesCount);
+        Assert.Equal(nameof(TestTrackedObject.Description), item.CurrentChange?.PropertyName);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(null)]
@@ -257,6 +294,27 @@ public class ChangeTrackingTests
 
         collection.Undo();
         AssertSequence(collection, "one", "two");
+    }
+
+    [Fact]
+    public void TrackedCollectionClearsChangesWhenItemsReturnToOriginalSequence()
+    {
+        using TestTrackedCollection collection = new TestTrackedCollection(new[] { "one", "two" })
+        {
+            IsTrackingEnabled = true
+        };
+
+        collection.StartTracking();
+        collection.Add("three", true);
+        Assert.True(collection.HasChanges);
+        Assert.Equal(1, collection.ChangesCount);
+
+        collection.Remove("three", true);
+
+        AssertSequence(collection, "one", "two");
+        Assert.False(collection.HasChanges);
+        Assert.Equal(0, collection.ChangesCount);
+        Assert.False(collection.CanUndo());
     }
 
     private static void AssertSequence(IReadOnlyList<string> collection, params string[] expected)

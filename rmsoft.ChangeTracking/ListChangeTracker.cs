@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 
 namespace rmsoft.ChangeTracking
 {
@@ -37,6 +38,8 @@ namespace rmsoft.ChangeTracking
             }
 
             AddChange(e);
+            if (originalList != null && originalList.SequenceEqual(Item))
+                ClearChanges();
         }
 
         /// <summary>

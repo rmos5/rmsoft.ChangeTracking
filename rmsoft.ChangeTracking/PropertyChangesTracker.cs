@@ -76,6 +76,15 @@ namespace rmsoft.ChangeTracking
             if (Equals(previousValue, currentValue))
                 return;
 
+            object? originalValue = originalPropertyValues[propertyName];
+            if (Equals(originalValue, currentValue))
+            {
+                currentPropertyValues[propertyName] = currentValue;
+                ClearRedoChanges();
+                RemoveChanges(o => o.PropertyName == propertyName);
+                return;
+            }
+
             PropertyChanges change = new PropertyChanges(propertyName);
             change.Add(previousValue);
             change.Add(currentValue);
