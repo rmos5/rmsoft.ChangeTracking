@@ -18,10 +18,12 @@ public class ChangeTrackingTests
 
         item.Undo();
         Assert.Equal("Original", item.Name);
-        Assert.True(item.CanRedo());
+        Assert.False(item.HasChanges);
+        Assert.Equal(0, item.ChangesCount);
+        Assert.False(item.CanRedo());
 
-        item.Redo();
-        Assert.Equal("Updated", item.Name);
+        item.Name = "Updated";
+        Assert.True(item.HasChanges);
     }
 
     [Fact]
@@ -63,18 +65,8 @@ public class ChangeTrackingTests
         item.Undo();
         Assert.Equal("Original", item.Name);
         Assert.Equal("First", item.Description);
-
-        item.Redo();
-        Assert.Equal("Second", item.Name);
-        Assert.Equal("First", item.Description);
-
-        item.Redo();
-        Assert.Equal("Second", item.Name);
-        Assert.Equal("Updated", item.Description);
-
-        item.Redo();
-        Assert.Equal("Third", item.Name);
-        Assert.Equal("Updated", item.Description);
+        Assert.False(item.HasChanges);
+        Assert.False(item.CanRedo());
     }
 
     [Fact]
@@ -132,6 +124,46 @@ public class ChangeTrackingTests
         Assert.True(item.HasChanges);
         Assert.Equal(1, item.ChangesCount);
         Assert.Equal(nameof(TestTrackedObject.Description), item.CurrentChange?.PropertyName);
+    }
+
+    [Fact]
+    public void TrackedObjectClearsChangesWhenUndoReturnsToOriginalValue()
+    {
+        using TestTrackedObject item = new TestTrackedObject { IsTrackingEnabled = true, Name = "Original" };
+
+        item.StartTracking();
+        item.Name = "Updated";
+
+        item.Undo();
+
+        Assert.Equal("Original", item.Name);
+        Assert.False(item.HasChanges);
+        Assert.Equal(0, item.ChangesCount);
+        Assert.False(item.CanUndo());
+        Assert.False(item.CanRedo());
+    }
+
+    [Fact]
+    public void TrackedObjectKeepsOtherChangesWhenUndoReturnsOnePropertyToOriginalValue()
+    {
+        using TestTrackedObject item = new TestTrackedObject
+        {
+            IsTrackingEnabled = true,
+            Name = "Original",
+            Description = "First"
+        };
+
+        item.StartTracking();
+        item.Name = "Updated";
+        item.Description = "Second";
+
+        item.Undo();
+
+        Assert.Equal("Updated", item.Name);
+        Assert.Equal("First", item.Description);
+        Assert.True(item.HasChanges);
+        Assert.Equal(1, item.ChangesCount);
+        Assert.Equal(nameof(TestTrackedObject.Name), item.CurrentChange?.PropertyName);
     }
 
     [Theory]
@@ -218,26 +250,31 @@ public class ChangeTrackingTests
         collection.StartTracking();
 
         collection.Add("four", true);
+        collection.Add("five", true);
+        AssertSequence(collection, "one", "two", "three", "four", "five");
+        collection.Undo();
         AssertSequence(collection, "one", "two", "three", "four");
+        collection.Redo();
+        AssertSequence(collection, "one", "two", "three", "four", "five");
+        collection.Undo();
         collection.Undo();
         AssertSequence(collection, "one", "two", "three");
-        collection.Redo();
-        AssertSequence(collection, "one", "two", "three", "four");
+        Assert.False(collection.HasChanges);
 
         collection.Remove("two", true);
-        AssertSequence(collection, "one", "three", "four");
+        AssertSequence(collection, "one", "three");
         collection.Undo();
-        AssertSequence(collection, "one", "two", "three", "four");
+        AssertSequence(collection, "one", "two", "three");
 
         collection.Move(0, 2, true);
-        AssertSequence(collection, "two", "three", "one", "four");
+        AssertSequence(collection, "two", "three", "one");
         collection.Undo();
-        AssertSequence(collection, "one", "two", "three", "four");
+        AssertSequence(collection, "one", "two", "three");
 
         collection.ReplaceAt(1, "replacement", true);
-        AssertSequence(collection, "one", "replacement", "three", "four");
+        AssertSequence(collection, "one", "replacement", "three");
         collection.Undo();
-        AssertSequence(collection, "one", "two", "three", "four");
+        AssertSequence(collection, "one", "two", "three");
     }
 
     [Fact]
@@ -315,6 +352,26 @@ public class ChangeTrackingTests
         Assert.False(collection.HasChanges);
         Assert.Equal(0, collection.ChangesCount);
         Assert.False(collection.CanUndo());
+    }
+
+    [Fact]
+    public void TrackedCollectionClearsChangesWhenUndoReturnsToOriginalSequence()
+    {
+        using TestTrackedCollection collection = new TestTrackedCollection(new[] { "one", "two" })
+        {
+            IsTrackingEnabled = true
+        };
+
+        collection.StartTracking();
+        collection.Add("three", true);
+
+        collection.Undo();
+
+        AssertSequence(collection, "one", "two");
+        Assert.False(collection.HasChanges);
+        Assert.Equal(0, collection.ChangesCount);
+        Assert.False(collection.CanUndo());
+        Assert.False(collection.CanRedo());
     }
 
     private static void AssertSequence(IReadOnlyList<string> collection, params string[] expected)

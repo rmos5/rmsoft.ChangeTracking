@@ -14,7 +14,8 @@ namespace rmsoft.ChangeTracking
     }
 
     /// <summary>
-    /// Tracks chronological changes for properties marked with <see cref="PropertyChangeTrackerAttribute" />.
+    /// Tracks outstanding chronological changes for properties marked with <see cref="PropertyChangeTrackerAttribute" />.
+    /// When a property or object returns to the state captured when tracking started, the matching outstanding changes are cleared.
     /// </summary>
     public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangesTracking
     {
@@ -141,6 +142,30 @@ namespace rmsoft.ChangeTracking
                 AddItemEvents();
         }
 
+        private bool IsOriginalState()
+        {
+            if (originalPropertyValues == null || currentPropertyValues == null)
+                return false;
+
+            foreach (KeyValuePair<string, object?> originalValue in originalPropertyValues)
+            {
+                if (!currentPropertyValues.TryGetValue(originalValue.Key, out object? currentValue)
+                    || !Equals(originalValue.Value, currentValue))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool IsPropertyOriginal(string propertyName)
+        {
+            return originalPropertyValues != null
+                && currentPropertyValues != null
+                && originalPropertyValues.TryGetValue(propertyName, out object? originalValue)
+                && currentPropertyValues.TryGetValue(propertyName, out object? currentValue)
+                && Equals(originalValue, currentValue);
+        }
+
         /// <inheritdoc />
         protected override int ApplyUndoChange()
         {
@@ -151,6 +176,18 @@ namespace rmsoft.ChangeTracking
 
             change.Undo();
             ApplyChange(change.PropertyName, change.Current);
+
+            if (IsOriginalState())
+            {
+                ClearChanges();
+                return CurrentIndex;
+            }
+
+            if (IsPropertyOriginal(change.PropertyName))
+            {
+                RemoveChanges(o => o.PropertyName == change.PropertyName);
+                return CurrentIndex;
+            }
 
             return CurrentIndex - 1;
         }
@@ -166,6 +203,18 @@ namespace rmsoft.ChangeTracking
 
             change.Redo();
             ApplyChange(change.PropertyName, change.Current);
+
+            if (IsOriginalState())
+            {
+                ClearChanges();
+                return CurrentIndex;
+            }
+
+            if (IsPropertyOriginal(change.PropertyName))
+            {
+                RemoveChanges(o => o.PropertyName == change.PropertyName);
+                return CurrentIndex;
+            }
 
             return result;
         }

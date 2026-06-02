@@ -6,7 +6,7 @@ using System.Linq;
 namespace rmsoft.ChangeTracking
 {
     /// <summary>
-    /// Provides common undo/redo history management for concrete change trackers.
+    /// Provides common outstanding-change and undo/redo management for concrete change trackers.
     /// </summary>
     /// <typeparam name="TSource">The tracked source type.</typeparam>
     /// <typeparam name="TChange">The type used to describe a tracked change.</typeparam>
@@ -35,7 +35,7 @@ namespace rmsoft.ChangeTracking
         public virtual bool HasChanges => ChangesCount > 0;
 
         /// <summary>
-        /// Gets the current zero-based position in the change history.
+        /// Gets the current zero-based position in the outstanding-change history.
         /// </summary>
         public int CurrentIndex { get; protected set; } = -1;
 
@@ -108,7 +108,7 @@ namespace rmsoft.ChangeTracking
         }
 
         /// <summary>
-        /// Adds a change to the history and clears any redo branch.
+        /// Adds an outstanding change and clears any redo branch.
         /// </summary>
         /// <param name="change">The change to add.</param>
         protected void AddChange(TChange change)
@@ -121,7 +121,7 @@ namespace rmsoft.ChangeTracking
         }
 
         /// <summary>
-        /// Clears all tracked changes and resets the history position.
+        /// Clears all outstanding changes and resets the history position.
         /// </summary>
         protected void ClearChanges()
         {

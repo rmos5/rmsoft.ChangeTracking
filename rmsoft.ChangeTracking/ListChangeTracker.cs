@@ -13,7 +13,8 @@ namespace rmsoft.ChangeTracking
     }
 
     /// <summary>
-    /// Tracks add, remove, move, replace, and reset changes for an <see cref="INotifyListChanged{T}" /> collection.
+    /// Tracks outstanding add, remove, move, replace, and reset changes for an <see cref="INotifyListChanged{T}" /> collection.
+    /// When the collection returns to the sequence captured when tracking started, the outstanding changes are cleared.
     /// </summary>
     /// <typeparam name="T">The collection item type.</typeparam>
     public class ListChangeTracker<T> : ChangeTrackerBase<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>, IListChangeTracking<T>
@@ -40,6 +41,12 @@ namespace rmsoft.ChangeTracking
             AddChange(e);
             if (originalList != null && originalList.SequenceEqual(Item))
                 ClearChanges();
+        }
+
+        private bool IsOriginalState()
+        {
+            return originalList != null
+                && originalList.SequenceEqual(Item);
         }
 
         /// <summary>
@@ -128,6 +135,12 @@ namespace rmsoft.ChangeTracking
             if (IsTracking)
                 AddItemEvents();
 
+            if (IsOriginalState())
+            {
+                ClearChanges();
+                return CurrentIndex;
+            }
+
             return result;
         }
 
@@ -165,6 +178,12 @@ namespace rmsoft.ChangeTracking
 
             if (IsTracking)
                 AddItemEvents();
+
+            if (IsOriginalState())
+            {
+                ClearChanges();
+                return CurrentIndex;
+            }
 
             return result;
         }

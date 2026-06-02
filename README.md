@@ -2,7 +2,7 @@
 
 Change tracking helpers for .NET objects and observable collections.
 
-`rmsoft.ChangeTracking` provides small base classes for tracking edits, undoing and redoing changes, and cancelling back to original values. It is built around familiar .NET binding primitives such as `INotifyPropertyChanged`, `ObservableCollection<T>`, `INotifyCollectionChanged`, and `ICommand`.
+`rmsoft.ChangeTracking` provides small base classes for tracking outstanding edits, undoing and redoing changes, and cancelling back to original values. It is built around familiar .NET binding primitives such as `INotifyPropertyChanged`, `ObservableCollection<T>`, `INotifyCollectionChanged`, and `ICommand`.
 
 ## Targets
 
@@ -66,8 +66,9 @@ using Person person = new Person
 person.StartTracking();
 person.Name = "Updated";
 
-person.Undo(); // Name == "Original"
-person.Redo(); // Name == "Updated"
+person.HasChanges; // true
+person.Name = "Original";
+person.HasChanges; // false
 
 person.StopTracking(cancelChanges: true); // restore original values and clear history
 ```
@@ -101,9 +102,20 @@ using People people = new People(new[]
 people.StartTracking();
 people.Add(new Person { Name = "Three" }, select: true);
 
-people.Undo(); // removes "Three"
-people.Redo(); // adds "Three" again
+people.HasChanges; // true
+people.Remove(people.SelectedItem!, select: true);
+people.HasChanges; // false, because the collection sequence matches the original sequence
 ```
+
+## Change Policy
+
+Tracking is based on the state captured by `StartTracking()`.
+
+`HasChanges` means the current state differs from that captured state. Change history represents outstanding changes, not an infinite editor-style undo stack.
+
+When a tracked object or collection returns to its original state, its outstanding changes are cleared and `HasChanges` becomes `false`. This can happen through direct edits, `Undo()`, or `Redo()`.
+
+If one tracked property returns to its original value while other tracked properties are still changed, only that property's outstanding changes are cleared.
 
 ## Commands
 

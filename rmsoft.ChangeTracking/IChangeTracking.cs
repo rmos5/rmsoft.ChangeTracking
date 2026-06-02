@@ -19,7 +19,7 @@ namespace rmsoft.ChangeTracking
         int ChangesCount { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the tracker currently contains changes.
+        /// Gets a value indicating whether the current state differs from the state captured when tracking started.
         /// </summary>
         bool HasChanges { get; }
 
@@ -60,6 +60,7 @@ namespace rmsoft.ChangeTracking
 
         /// <summary>
         /// Undoes the current change when an undo operation is available.
+        /// If the operation returns the tracked source to its original state, the change history is cleared.
         /// </summary>
         void Undo();
 
@@ -71,6 +72,7 @@ namespace rmsoft.ChangeTracking
 
         /// <summary>
         /// Redoes the next change when a redo operation is available.
+        /// If the operation returns the tracked source to its original state, the change history is cleared.
         /// </summary>
         void Redo();
     }
@@ -89,7 +91,7 @@ namespace rmsoft.ChangeTracking
         TSource Item { get; }
 
         /// <summary>
-        /// Gets the tracked change history.
+        /// Gets the outstanding tracked changes relative to the state captured when tracking started.
         /// </summary>
         IEnumerable<TChange> Changes { get; }
 
