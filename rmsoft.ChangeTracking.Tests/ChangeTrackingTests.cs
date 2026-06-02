@@ -97,11 +97,76 @@ public class ChangeTrackingTests
         Assert.Equal("First", item.Name);
     }
 
-    [Fact]
-    public void TrackedObjectRejectsInvalidTrackedProperties()
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void TrackedObjectTreatsEmptyPropertyNameAsAllPropertiesChanged(string? propertyName)
     {
-        using ReadOnlyTrackedObject item = new ReadOnlyTrackedObject { IsTrackingEnabled = true };
+        using TestTrackedObject item = new TestTrackedObject
+        {
+            IsTrackingEnabled = true,
+            Name = "Original",
+            Description = "First"
+        };
 
+        item.StartTracking();
+        item.SetValuesWithoutSpecificPropertyName("Updated", "Second", propertyName);
+
+        Assert.Equal(2, item.ChangesCount);
+
+        item.Undo();
+        item.Undo();
+        Assert.Equal("Original", item.Name);
+        Assert.Equal("First", item.Description);
+    }
+
+    [Fact]
+    public void TrackedObjectIgnoresUntrackedPropertyChanges()
+    {
+        using TestTrackedObject item = new TestTrackedObject { IsTrackingEnabled = true };
+
+        item.StartTracking();
+        item.UntrackedName = "Ignored";
+
+        Assert.False(item.HasChanges);
+        Assert.False(item.CanUndo());
+    }
+
+    [Fact]
+    public void TrackedObjectIgnoresNoOpPropertyAssignments()
+    {
+        using TestTrackedObject item = new TestTrackedObject { IsTrackingEnabled = true, Name = "Original" };
+
+        item.StartTracking();
+        item.Name = "Original";
+        item.RaiseTrackedNameChanged();
+
+        Assert.False(item.HasChanges);
+        Assert.False(item.CanUndo());
+    }
+
+    [Theory]
+    [InlineData(typeof(ReadOnlyTrackedObject))]
+    [InlineData(typeof(StaticTrackedObject))]
+    [InlineData(typeof(IndexerTrackedObject))]
+    public void TrackedObjectRejectsUnsupportedTrackedPropertyShapes(Type itemType)
+    {
+        using TrackedObjectBase item = (TrackedObjectBase)Activator.CreateInstance(itemType)!;
+        item.IsTrackingEnabled = true;
+
+        Assert.Throws<InvalidOperationException>(item.StartTracking);
+    }
+
+    [Fact]
+    public void TrackedObjectEnforcesTrackingStateGuards()
+    {
+        using TestTrackedObject disabled = new TestTrackedObject();
+        Assert.Throws<InvalidOperationException>(disabled.StartTracking);
+
+        using TestTrackedObject item = new TestTrackedObject { IsTrackingEnabled = true };
+        Assert.Throws<InvalidOperationException>(() => item.StopTracking(cancelChanges: false));
+
+        item.StartTracking();
         Assert.Throws<InvalidOperationException>(item.StartTracking);
     }
 
@@ -171,6 +236,29 @@ public class ChangeTrackingTests
         Assert.False(collection.HasChanges);
     }
 
+    [Fact]
+    public void TrackedCollectionClearsRedoHistoryAfterNewChange()
+    {
+        using TestTrackedCollection collection = new TestTrackedCollection(new[] { "one" })
+        {
+            IsTrackingEnabled = true
+        };
+
+        collection.StartTracking();
+        collection.Add("two", true);
+        collection.Add("three", true);
+
+        collection.Undo();
+        AssertSequence(collection, "one", "two");
+        Assert.True(collection.CanRedo());
+
+        collection.Add("branch", true);
+        Assert.False(collection.CanRedo());
+
+        collection.Undo();
+        AssertSequence(collection, "one", "two");
+    }
+
     private static void AssertSequence(IReadOnlyList<string> collection, params string[] expected)
     {
         Assert.Equal(expected, collection);
@@ -180,6 +268,7 @@ public class ChangeTrackingTests
     {
         private string? name;
         private string? description;
+        private string? untrackedName;
 
         [PropertyChangeTracker]
         public string? Name
@@ -208,12 +297,53 @@ public class ChangeTrackingTests
                 OnPropertyChanged(nameof(Description));
             }
         }
+
+        public string? UntrackedName
+        {
+            get => untrackedName;
+            set
+            {
+                if (untrackedName == value)
+                    return;
+
+                untrackedName = value;
+                OnPropertyChanged(nameof(UntrackedName));
+            }
+        }
+
+        public void RaiseTrackedNameChanged()
+        {
+            OnPropertyChanged(nameof(Name));
+        }
+
+        public void SetValuesWithoutSpecificPropertyName(string name, string description, string? propertyName)
+        {
+            this.name = name;
+            this.description = description;
+            OnPropertyChanged(propertyName!);
+        }
     }
 
     private sealed class ReadOnlyTrackedObject : TrackedObjectBase
     {
         [PropertyChangeTracker]
         public string Name => "Read only";
+    }
+
+    private sealed class StaticTrackedObject : TrackedObjectBase
+    {
+        [PropertyChangeTracker]
+        public static string Name { get; set; } = "Static";
+    }
+
+    private sealed class IndexerTrackedObject : TrackedObjectBase
+    {
+        [PropertyChangeTracker]
+        public string this[int index]
+        {
+            get => index.ToString();
+            set { }
+        }
     }
 
     private sealed class TestTrackedCollection : TrackedObservableCollection<string>
