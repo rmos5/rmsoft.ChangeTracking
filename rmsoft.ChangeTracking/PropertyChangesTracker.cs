@@ -6,27 +6,46 @@ using System.Reflection;
 
 namespace rmsoft.ChangeTracking
 {
+    /// <summary>
+    /// Tracks property changes on an <see cref="INotifyPropertyChanged" /> object.
+    /// </summary>
     public interface IPropertyChangesTracking : IChangeTracking<INotifyPropertyChanged, PropertyChanges>
     {
     }
 
+    /// <summary>
+    /// Tracks chronological changes for properties marked with <see cref="PropertyChangeTrackerAttribute" />.
+    /// </summary>
     public class PropertyChangesTracker : ChangeTrackerBase<INotifyPropertyChanged, PropertyChanges>, IPropertyChangesTracking
     {
         private readonly Dictionary<string, PropertyInfo> trackedProperties = new Dictionary<string, PropertyInfo>();
         private Dictionary<string, object?>? originalPropertyValues;
         private Dictionary<string, object?>? currentPropertyValues;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PropertyChangesTracker" /> class.
+        /// </summary>
+        /// <param name="item">The object whose property notifications should be tracked.</param>
         public PropertyChangesTracker(INotifyPropertyChanged item)
             : base(item)
         {
         }
 
+        /// <inheritdoc />
         public override bool HasChanges =>
             base.HasChanges
             && Changes.Any(o => o.Count > 0);
 
+        /// <summary>
+        /// Gets the names of properties that are configured for tracking.
+        /// </summary>
+        /// <returns>The tracked property names.</returns>
         protected IEnumerable<string> GetTrackedPropertyNames() => trackedProperties.Keys;
 
+        /// <summary>
+        /// Gets the names of properties that have recorded changes.
+        /// </summary>
+        /// <returns>The changed property names.</returns>
         protected IEnumerable<string> GetChangedPropertyNames() => Changes.Select(o => o.PropertyName).Distinct();
 
         private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -64,28 +83,42 @@ namespace rmsoft.ChangeTracking
             AddChange(change);
         }
 
+        /// <summary>
+        /// Subscribes to property change notifications on <see cref="ChangeTrackerBase{TSource, TChange}.Item" />.
+        /// </summary>
         protected void AddItemEvents()
         {
             Item.PropertyChanged += Item_PropertyChanged;
         }
 
+        /// <summary>
+        /// Unsubscribes from property change notifications on <see cref="ChangeTrackerBase{TSource, TChange}.Item" />.
+        /// </summary>
         protected void RemoveItemEvents()
         {
             Item.PropertyChanged -= Item_PropertyChanged;
         }
 
+        /// <inheritdoc />
         public override bool CanUndo()
         {
             return base.CanUndo()
                 || CurrentChange?.CanUndo == true;
         }
 
+        /// <inheritdoc />
         public override bool CanRedo()
         {
             return base.CanRedo()
                 || CurrentChange?.CanRedo == true;
         }
 
+        /// <summary>
+        /// Applies a tracked property value to the source item.
+        /// </summary>
+        /// <param name="name">The tracked property name.</param>
+        /// <param name="value">The value to apply.</param>
+        /// <exception cref="InvalidOperationException">The tracked property cannot be found.</exception>
         protected void ApplyChange(string name, object? value)
         {
             if (!trackedProperties.TryGetValue(name, out PropertyInfo? property) || property == null)
@@ -99,6 +132,7 @@ namespace rmsoft.ChangeTracking
                 AddItemEvents();
         }
 
+        /// <inheritdoc />
         protected override int ApplyUndoChange()
         {
             PropertyChanges? change = CurrentChange;
@@ -112,6 +146,7 @@ namespace rmsoft.ChangeTracking
             return CurrentIndex - 1;
         }
 
+        /// <inheritdoc />
         protected override int ApplyRedoChange()
         {
             int result = CurrentIndex + 1;
@@ -126,6 +161,7 @@ namespace rmsoft.ChangeTracking
             return result;
         }
 
+        /// <inheritdoc />
         protected override void StartTrackingOverride()
         {
             trackedProperties.Clear();
@@ -158,11 +194,13 @@ namespace rmsoft.ChangeTracking
                 throw new InvalidOperationException($"Tracked property '{property.Name}' cannot be static.");
         }
 
+        /// <inheritdoc />
         protected override void StopTrackingOverride(bool cancelChanges)
         {
             RemoveItemEvents();
         }
 
+        /// <inheritdoc />
         protected override void SetOriginalValues(bool clearAfterSet)
         {
             if (originalPropertyValues == null)

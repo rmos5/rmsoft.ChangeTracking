@@ -3,14 +3,26 @@ using System.Collections.Specialized;
 
 namespace rmsoft.ChangeTracking
 {
+    /// <summary>
+    /// Tracks collection changes on an <see cref="INotifyListChanged{T}" /> collection.
+    /// </summary>
+    /// <typeparam name="T">The collection item type.</typeparam>
     public interface IListChangeTracking<T> : IChangeTracking<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>
     {
     }
 
+    /// <summary>
+    /// Tracks add, remove, move, replace, and reset changes for an <see cref="INotifyListChanged{T}" /> collection.
+    /// </summary>
+    /// <typeparam name="T">The collection item type.</typeparam>
     public class ListChangeTracker<T> : ChangeTrackerBase<INotifyListChanged<T>, NotifyCollectionChangedEventArgs>, IListChangeTracking<T>
     {
         private List<T>? originalList;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ListChangeTracker{T}" /> class.
+        /// </summary>
+        /// <param name="item">The collection whose changes should be tracked.</param>
         public ListChangeTracker(INotifyListChanged<T> item)
             : base(item)
         {
@@ -27,27 +39,36 @@ namespace rmsoft.ChangeTracking
             AddChange(e);
         }
 
+        /// <summary>
+        /// Subscribes to collection change notifications on <see cref="ChangeTrackerBase{TSource, TChange}.Item" />.
+        /// </summary>
         protected void AddItemEvents()
         {
             Item.CollectionChanged += Item_CollectionChanged;
         }
 
+        /// <summary>
+        /// Unsubscribes from collection change notifications on <see cref="ChangeTrackerBase{TSource, TChange}.Item" />.
+        /// </summary>
         protected void RemoveItemEvents()
         {
             Item.CollectionChanged -= Item_CollectionChanged;
         }
 
+        /// <inheritdoc />
         protected override void StartTrackingOverride()
         {
             originalList = new List<T>(Item);
             AddItemEvents();
         }
 
+        /// <inheritdoc />
         protected override void StopTrackingOverride(bool cancelChanges)
         {
             RemoveItemEvents();
         }
 
+        /// <inheritdoc />
         protected override void SetOriginalValues(bool clearAfterSet)
         {
             if (originalList == null)
@@ -67,6 +88,7 @@ namespace rmsoft.ChangeTracking
                 AddItemEvents();
         }
 
+        /// <inheritdoc />
         protected override int ApplyUndoChange()
         {
             int result = CurrentIndex;
@@ -106,6 +128,7 @@ namespace rmsoft.ChangeTracking
             return result;
         }
 
+        /// <inheritdoc />
         protected override int ApplyRedoChange()
         {
             int result = CurrentIndex + 1;
