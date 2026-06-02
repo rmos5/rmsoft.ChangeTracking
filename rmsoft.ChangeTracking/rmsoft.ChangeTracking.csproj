@@ -15,6 +15,15 @@
     <PackageId>rmsoft.ChangeTracking</PackageId>
     <PackageVersion>1.0.0</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/rmos5/rmsoft.ChangeTracking</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/rmos5/rmsoft.ChangeTracking</PackageProjectUrl>
+    <PackageTags>change-tracking;undo;redo;observablecollection;inotifypropertychanged</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>
