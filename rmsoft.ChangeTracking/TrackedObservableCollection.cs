@@ -170,6 +170,9 @@ namespace rmsoft.ChangeTracking
         public void Remove(T item, bool select)
         {
             int idx = IndexOf(item);
+            if (idx < 0)
+                return;
+
             Remove(item);
 
             if (select)

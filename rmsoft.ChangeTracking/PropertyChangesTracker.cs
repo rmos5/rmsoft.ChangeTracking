@@ -14,6 +14,7 @@ namespace rmsoft.ChangeTracking
     {
         private readonly Dictionary<string, PropertyInfo> trackedProperties = new Dictionary<string, PropertyInfo>();
         private Dictionary<string, object?>? originalPropertyValues;
+        private Dictionary<string, object?>? currentPropertyValues;
 
         public PropertyChangesTracker(INotifyPropertyChanged item)
             : base(item)
@@ -48,17 +49,19 @@ namespace rmsoft.ChangeTracking
             if (originalPropertyValues == null)
                 throw new InvalidOperationException("Original property values have not been captured.");
 
-            PropertyChanges? change = Changes.FirstOrDefault(o => o.PropertyName == propertyName);
-            bool add = change == null;
-            if (change == null)
-            {
-                change = new PropertyChanges(propertyName);
-                change.Add(originalPropertyValues[propertyName]);
-            }
+            if (currentPropertyValues == null)
+                throw new InvalidOperationException("Current property values have not been captured.");
 
-            change.Add(property.GetValue(Item));
-            if (add)
-                AddChange(change);
+            object? previousValue = currentPropertyValues[propertyName];
+            object? currentValue = property.GetValue(Item);
+            if (Equals(previousValue, currentValue))
+                return;
+
+            PropertyChanges change = new PropertyChanges(propertyName);
+            change.Add(previousValue);
+            change.Add(currentValue);
+            currentPropertyValues[propertyName] = currentValue;
+            AddChange(change);
         }
 
         protected void AddItemEvents()
@@ -91,51 +94,30 @@ namespace rmsoft.ChangeTracking
             if (IsTracking)
                 RemoveItemEvents();
             property.SetValue(Item, value);
+            currentPropertyValues![name] = value;
             if (IsTracking)
                 AddItemEvents();
         }
 
         protected override int ApplyUndoChange()
         {
-            int result = CurrentIndex;
             PropertyChanges? change = CurrentChange;
 
-            if (change == null)
-                return result;
-
-            if (!change.CanUndo)
-            {
-                result -= 1;
-                change = GetChange(result);
-            }
-
-            if (result < 0 || change == null)
-                return result;
+            if (change == null || !change.CanUndo)
+                return CurrentIndex;
 
             change.Undo();
             ApplyChange(change.PropertyName, change.Current);
 
-            if (!change.CanUndo)
-                result -= 1;
-
-            return result;
+            return CurrentIndex - 1;
         }
 
         protected override int ApplyRedoChange()
         {
-            int result = CurrentIndex < 0 ? 0 : CurrentIndex;
-            PropertyChanges? change = GetChange(result);
+            int result = CurrentIndex + 1;
+            PropertyChanges? change = NextChange;
 
-            if (change == null)
-                return result;
-
-            if (!change.CanRedo)
-            {
-                result += 1;
-                change = GetChange(result);
-            }
-
-            if (change == null)
+            if (change == null || !change.CanRedo)
                 return CurrentIndex;
 
             change.Redo();
@@ -149,14 +131,31 @@ namespace rmsoft.ChangeTracking
             trackedProperties.Clear();
             foreach (PropertyInfo property in Item.GetType().GetProperties().Where(o => o.GetCustomAttributes<PropertyChangeTrackerAttribute>(false).Any()))
             {
+                ValidateTrackedProperty(property);
                 trackedProperties[property.Name] = property;
             }
 
             originalPropertyValues = trackedProperties.ToDictionary<KeyValuePair<string, PropertyInfo>, string, object?>(
                 o => o.Key,
                 o => o.Value.GetValue(Item));
+            currentPropertyValues = new Dictionary<string, object?>(originalPropertyValues);
 
             AddItemEvents();
+        }
+
+        private static void ValidateTrackedProperty(PropertyInfo property)
+        {
+            if (property.GetIndexParameters().Length > 0)
+                throw new InvalidOperationException($"Tracked property '{property.Name}' cannot be an indexer.");
+
+            if (property.GetMethod == null)
+                throw new InvalidOperationException($"Tracked property '{property.Name}' must have a getter.");
+
+            if (property.SetMethod == null)
+                throw new InvalidOperationException($"Tracked property '{property.Name}' must have a setter.");
+
+            if (property.GetMethod.IsStatic || property.SetMethod.IsStatic)
+                throw new InvalidOperationException($"Tracked property '{property.Name}' cannot be static.");
         }
 
         protected override void StopTrackingOverride(bool cancelChanges)
@@ -175,11 +174,17 @@ namespace rmsoft.ChangeTracking
             foreach (KeyValuePair<string, object?> originalValue in originalPropertyValues)
             {
                 if (trackedProperties.TryGetValue(originalValue.Key, out PropertyInfo? property) && property != null)
+                {
                     property.SetValue(Item, originalValue.Value);
+                    currentPropertyValues![originalValue.Key] = originalValue.Value;
+                }
             }
 
             if (clearAfterSet)
+            {
                 originalPropertyValues = null;
+                currentPropertyValues = null;
+            }
 
             if (IsTracking)
                 AddItemEvents();
